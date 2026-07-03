@@ -18,6 +18,8 @@
 #include <cassert>
 #include <cstring>
 #include <memory>
+#include <numeric>
+#include <stdexcept>
 #include <vector>
 
 #include "nsparse/sparse_vectors.h"
@@ -135,10 +137,6 @@ void score_essential_terms(std::vector<DirectTermScorer>& scorers,
             if (doc >= window_end) {
                 break;
             }
-            if (doc < window_base) {
-                ++scorer.current_index;
-                continue;
-            }
             int slot = doc - window_base;
             bitmap[slot >> 6] |= (1ULL << (slot & 63));
             window_scores[slot] +=
@@ -201,6 +199,44 @@ void evaluate_window_candidates(std::vector<DirectTermScorer>& scorers,
             }
         }
     }
+}
+
+// Enforce the posting-list invariant required by the MaxScore search kernel:
+// doc_ids must be non-negative and sorted ascending, with codes co-permuted so
+// each value stays paired with its doc_id.
+void sanitize_posting_list(std::vector<idx_t>& doc_ids,
+                           std::vector<uint8_t>& codes, size_t element_size) {
+    const size_t n = doc_ids.size();
+
+    // 1. Reject negative doc_ids (they make slot = doc - window_base < 0).
+    for (size_t j = 0; j < n; ++j) {
+        if (doc_ids[j] < 0) {
+            throw std::runtime_error(
+                "InvertedIndex::read_index: negative doc_id in posting list");
+        }
+    }
+
+    // 2. If already sorted, nothing to do (the common, well-formed case).
+    if (std::is_sorted(doc_ids.begin(), doc_ids.end())) {
+        return;
+    }
+
+    // 3. Co-sort doc_ids and codes by doc_id ascending.
+    std::vector<size_t> order(n);
+    std::iota(order.begin(), order.end(), size_t{0});
+    std::sort(order.begin(), order.end(),
+              [&](size_t a, size_t b) { return doc_ids[a] < doc_ids[b]; });
+
+    std::vector<idx_t> sorted_ids(n);
+    std::vector<uint8_t> sorted_codes(codes.size());
+    for (size_t k = 0; k < n; ++k) {
+        size_t src = order[k];
+        sorted_ids[k] = doc_ids[src];
+        std::memcpy(sorted_codes.data() + k * element_size,
+                    codes.data() + src * element_size, element_size);
+    }
+    doc_ids.swap(sorted_ids);
+    codes.swap(sorted_codes);
 }
 
 }  // namespace
@@ -399,6 +435,9 @@ void InvertedIndex::read_index(IOReader* io_reader) {
                 size_t codes_size = list_size * element_size;
                 std::vector<uint8_t> codes(codes_size);
                 io_reader->read(codes.data(), sizeof(uint8_t), codes_size);
+                // Enforce the sorted/non-negative doc_id invariant that the
+                // MaxScore search kernel depends on.
+                sanitize_posting_list(doc_ids, codes, element_size);
                 inverted_lists_->add_entries(static_cast<term_t>(i), list_size,
                                              doc_ids.data(), codes.data());
             }
