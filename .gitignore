@@ -47,8 +47,10 @@ venv/
 # third_party
 third_party/
 
-# build
+# build (all out-of-source CMake build trees)
 build/
+build-bench/
+build-jni/
 
 # claude
 .claude/settings.local.json

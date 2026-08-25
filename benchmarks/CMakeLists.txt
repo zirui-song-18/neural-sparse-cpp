@@ -18,10 +18,10 @@ FetchContent_Declare(
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
-# Enable libpfm for perf counters on Linux (requires libpfm4-dev)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(BENCHMARK_ENABLE_LIBPFM ON CACHE BOOL "" FORCE)
-endif()
+# google-benchmark's internal libpfm perf counters need libpfm4-dev and are not
+# required by the benchmark protocol (it uses external `perf stat`). Leave OFF so
+# the build stays portable on a fresh benchmark host without extra packages.
+set(BENCHMARK_ENABLE_LIBPFM OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(googlebenchmark)
 
