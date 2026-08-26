@@ -186,7 +186,7 @@ int do_build(int argc, char** argv) {
 int do_search(int argc, char** argv) {
     if (argc < 7) {
         std::cerr << "search <dat> <queries.csr> <k> <reps> <inmem|mmap> "
-                     "[truth.txt|-] [cut] [k_prime]\n";
+                     "[truth.txt|-] [cut] [k_prime] [heap_factor]\n";
         return 2;
     }
     std::string dat_path = argv[2];
@@ -200,6 +200,10 @@ int do_search(int argc, char** argv) {
     // k_prime > 0 selects the DiskSeismic GroC path (score summaries, take the
     // global top-k' blocks); 0 uses the plain SEISMIC heap_factor traversal.
     const int k_prime = argc > 9 ? std::atoi(argv[9]) : 0;
+    // SEISMIC pruning slack (used only when k_prime==0). Skip a cluster when
+    // cluster_score*heap_factor < heap.peek, so LARGER = prune fewer = higher
+    // recall + slower. Sweep this to raise SEISMIC recall for iso-recall points.
+    const float heap_factor = argc > 10 ? static_cast<float>(std::atof(argv[10])) : 1.0F;
 
     const int io_flags =
         residency == "mmap" ? nsparse::IndexIoFlag::kUseMmap : 0;
@@ -231,8 +235,8 @@ int do_search(int argc, char** argv) {
         params = std::make_unique<nsparse::DiskSeismicSearchParameters>(cut, k_prime);
         std::cout << "search_params cut " << cut << " k_prime " << k_prime << "\n";
     } else {
-        params = std::make_unique<nsparse::SeismicSearchParameters>(cut, 1.0F);
-        std::cout << "search_params cut " << cut << " heap_factor 1.0\n";
+        params = std::make_unique<nsparse::SeismicSearchParameters>(cut, heap_factor);
+        std::cout << "search_params cut " << cut << " heap_factor " << heap_factor << "\n";
     }
     std::vector<float> distances(static_cast<size_t>(n_queries) * k);
     std::vector<nsparse::idx_t> labels(static_cast<size_t>(n_queries) * k);
