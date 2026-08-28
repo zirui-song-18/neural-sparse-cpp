@@ -22,7 +22,7 @@ summaries resident (`RssAnon`), paging the forward index on demand (`RssFile`).
 ## Host prereqs (fresh g5.12xlarge)
 
 - **g5.12xlarge = AMD Zen2 (EPYC 7R32): no AVX-512.** Build uses `OPT_LEVEL=avx2` (default). `avx512` would not run.
-- Toolchain: `gcc10` (C++20) + `cmake3`. (`OPT_LEVEL=generic` is ~2× slower — a build mistake, not a measurement.)
+- Toolchain: `gcc10` (C++20) + `cmake3`. Build with `OPT_LEVEL=avx2` (the default); `OPT_LEVEL=generic` uses the scalar kernels and costs ~1.11–1.21× on the search path.
 - **Run as root** — the cgroup cap (`systemd-run --scope`) and dropping the page cache between runs both need it. As a normal user the cap runs fail with "Interactive authentication required".
 - ~24 GB free disk for the corpus + ~15 GB per serialized index (two here).
 
