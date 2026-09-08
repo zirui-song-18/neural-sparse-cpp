@@ -121,6 +121,128 @@ TEST(DiskSeismicSQIndex, MappedReloadMatchesFreshBuild8bit) {
                         fresh);  // fwd_
 }
 
+// An enumerable selector of size <= k must return every member, not just those
+// the block budget scores. Many-block corpus + tiny k' so the budget cannot
+// incidentally cover the scattered members. In-RAM path.
+TEST(DiskSeismicSQIndex, SmallSelectorReturnsAllMembersInMemory) {
+    const CSR corpus = make_corpus(2000, /*seed=*/1);
+    const CSR queries = make_corpus(20, /*seed=*/2);
+    DiskSeismicScalarQuantizedIndex disk(QuantizerType::QT_8bit, 0.0F, 1.0F,
+                                         cluster_params(), kDim);
+    add_corpus(disk, corpus);
+    disk.build();
+
+    std::vector<idx_t> members = {5, 100, 250, 500, 900, 1200, 1600, 1999};
+    SetIDSelector selector(members.size(), members.data());
+    DiskSeismicSearchParameters params(/*cut=*/10, /*k_prime=*/1);
+    params.set_id_selector(&selector);
+
+    expect_all_members_returned(search_all(disk, queries, 10, &params),
+                                members);
+}
+
+// Same contract on the mmap-loaded serialized index.
+TEST(DiskSeismicSQIndex, SmallSelectorReturnsAllMembersMmap) {
+    const CSR corpus = make_corpus(2000, /*seed=*/1);
+    const CSR queries = make_corpus(20, /*seed=*/2);
+    DiskSeismicScalarQuantizedIndex disk(QuantizerType::QT_8bit, 0.0F, 1.0F,
+                                         cluster_params(), kDim);
+    add_corpus(disk, corpus);
+    disk.build();
+    TempIndexFile file("nsparse_dssq_exact_match.idx");
+    write_index(&disk, file.c_str());
+    std::unique_ptr<Index> mapped(
+        read_index(file.c_str(), IndexIoFlag::kUseMmap));
+    ASSERT_NE(mapped, nullptr);
+
+    std::vector<idx_t> members = {5, 100, 250, 500, 900, 1200, 1600, 1999};
+    SetIDSelector selector(members.size(), members.data());
+    DiskSeismicSearchParameters params(/*cut=*/10, /*k_prime=*/1);
+    params.set_id_selector(&selector);
+
+    expect_all_members_returned(search_all(*mapped, queries, 10, &params),
+                                members);
+}
+
+// The mapped path (directory + remainder) must return the same members and
+// scores as the in-RAM path.
+TEST(DiskSeismicSQIndex, ExactMatchMappedMatchesInMemory) {
+    const CSR corpus = make_corpus(2000, /*seed=*/1);
+    const CSR queries = make_corpus(20, /*seed=*/2);
+    DiskSeismicScalarQuantizedIndex disk(QuantizerType::QT_8bit, 0.0F, 1.0F,
+                                         cluster_params(), kDim);
+    add_corpus(disk, corpus);
+    disk.build();
+    std::vector<idx_t> members = {5, 100, 250, 500, 900, 1200, 1600, 1999};
+    SetIDSelector selector(members.size(), members.data());
+    DiskSeismicSearchParameters params(/*cut=*/10, /*k_prime=*/1);
+    params.set_id_selector(&selector);
+
+    const ScoreIds in_memory = search_all(disk, queries, 10, &params);
+    TempIndexFile file("nsparse_dssq_exact_parity.idx");
+    write_index(&disk, file.c_str());
+    std::unique_ptr<Index> mapped(
+        read_index(file.c_str(), IndexIoFlag::kUseMmap));
+    ASSERT_NE(mapped, nullptr);
+    expect_same_results(search_all(*mapped, queries, 10, &params), in_memory);
+}
+
+// Docs pruned from every block must still be returned and scored, through the
+// remainder store. The victims are provably fully pruned (see the helper), so
+// with k_prime=1 they can only surface via the mapped exact-match path.
+TEST(DiskSeismicSQIndex, RemainderPathReturnsFullyPrunedMembers) {
+    const int n_fillers = 40;
+    const int n_victims = 3;
+    const CSR corpus = make_corpus_with_remainder(n_fillers, n_victims);
+    const CSR queries = make_corpus(5, /*seed=*/3);
+    DiskSeismicScalarQuantizedIndex disk(QuantizerType::QT_8bit, 0.0F, 1.0F,
+                                         cluster_params(), kDim);
+    add_corpus(disk, corpus);
+    disk.build();
+    std::vector<idx_t> members;
+    for (int v = 0; v < n_victims; ++v) {
+        members.push_back(n_fillers + v);
+    }
+    SetIDSelector selector(members.size(), members.data());
+    DiskSeismicSearchParameters params(/*cut=*/10, /*k_prime=*/1);
+    params.set_id_selector(&selector);
+
+    const ScoreIds in_memory = search_all(disk, queries, 10, &params);
+    TempIndexFile file("nsparse_dssq_remainder.idx");
+    write_index(&disk, file.c_str());
+    std::unique_ptr<Index> mapped(
+        read_index(file.c_str(), IndexIoFlag::kUseMmap));
+    ASSERT_NE(mapped, nullptr);
+    const ScoreIds got = search_all(*mapped, queries, 10, &params);
+    expect_all_members_returned(got, members);
+    expect_same_results(got, in_memory);
+}
+
+// A selector member outside the index (id >= num_vectors) is skipped, not read
+// out of bounds, on both the in-RAM and the mapped exact-match paths.
+TEST(DiskSeismicSQIndex, ExactMatchSkipsOutOfRangeSelectorMember) {
+    const CSR corpus = make_corpus(2000, /*seed=*/1);
+    const CSR queries = make_corpus(20, /*seed=*/2);
+    DiskSeismicScalarQuantizedIndex disk(QuantizerType::QT_8bit, 0.0F, 1.0F,
+                                         cluster_params(), kDim);
+    add_corpus(disk, corpus);
+    disk.build();
+    std::vector<idx_t> members = {5, 100, static_cast<idx_t>(corpus.n) + 50};
+    const std::vector<idx_t> valid = {5, 100};
+    SetIDSelector selector(members.size(), members.data());
+    DiskSeismicSearchParameters params(/*cut=*/10, /*k_prime=*/1);
+    params.set_id_selector(&selector);
+
+    expect_all_members_returned(search_all(disk, queries, 10, &params), valid);
+    TempIndexFile file("nsparse_dssq_oob.idx");
+    write_index(&disk, file.c_str());
+    std::unique_ptr<Index> mapped(
+        read_index(file.c_str(), IndexIoFlag::kUseMmap));
+    ASSERT_NE(mapped, nullptr);
+    expect_all_members_returned(search_all(*mapped, queries, 10, &params),
+                                valid);
+}
+
 // Same fresh-vs-mapped parity at 16-bit (the other quantizer width).
 TEST(DiskSeismicSQIndex, MappedReloadMatchesFreshBuild16bit) {
     const CSR corpus = make_corpus(1500, /*seed=*/1);

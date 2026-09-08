@@ -29,7 +29,13 @@ public:
         const auto* values = vectors->values_data();
         detail::TopKHolder<idx_t> holder(k);
         auto ids = id_selector->ordered_ids();
+        const auto num_vectors = vectors->num_vectors();
         for (auto doc_id : ids) {
+            // A selector may name ids outside this index; skip them rather than
+            // index indptr out of bounds.
+            if (doc_id < 0 || static_cast<size_t>(doc_id) >= num_vectors) {
+                continue;
+            }
             auto score = detail::compute_similarity(
                 doc_id, indptr, indices, values, dense, element_size);
             holder.add(score, doc_id);
