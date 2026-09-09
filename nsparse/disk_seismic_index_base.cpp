@@ -122,8 +122,8 @@ auto DiskSeismicIndexBase::search(idx_t n, const idx_t* indptr,
             return {distances, labels};
         }
         if (doc_locators_ != nullptr) {
-            return exact_match_mapped(n, indptr, indices, values, k, selector,
-                                      search_parameters);
+            return exact_match_directory(n, indptr, indices, values, k,
+                                         selector, search_parameters);
         }
     }
 
@@ -326,7 +326,32 @@ void DiskSeismicIndexBase::load_mapped_payload(MmapCursor* cursor,
     index_mapping_ = std::move(mapped);
 }
 
-auto DiskSeismicIndexBase::exact_match_mapped(
+auto DiskSeismicIndexBase::get_doc(idx_t doc_id, size_t element_size) const
+    -> DocSlice {
+    const detail::DocLocator loc = doc_locators_[doc_id];
+    if (loc.posting_list == detail::DocLocator::kRemainder) {
+        if (loc.block >= remainder_.num_vectors()) {
+            throw std::runtime_error(
+                "DiskSeismic exact match: remainder locator out of range");
+        }
+        const idx_t* r_indptr = remainder_.indptr_data();
+        const idx_t r_start = r_indptr[loc.block];
+        return {remainder_.indices_data() + r_start,
+                remainder_.values_data() +
+                    static_cast<size_t>(r_start) * element_size,
+                static_cast<size_t>(r_indptr[loc.block + 1] - r_start)};
+    }
+    const detail::BlockView bv = fwd_.block(loc.posting_list, loc.block);
+    if (bv.absent() || loc.slot >= bv.n_docs ||
+        bv.doc_ids[loc.slot] != static_cast<uint32_t>(doc_id)) {
+        throw std::runtime_error(
+            "DiskSeismic exact match: doc locator does not resolve to its doc");
+    }
+    return {bv.doc_comps(loc.slot), bv.doc_vals(loc.slot, element_size),
+            bv.nnz(loc.slot)};
+}
+
+auto DiskSeismicIndexBase::exact_match_directory(
     idx_t n, const idx_t* indptr, const term_t* indices, const float* values,
     int k, const IDSelectorEnumerable& selector,
     const SearchParameters* search_parameters) const
@@ -368,41 +393,14 @@ auto DiskSeismicIndexBase::exact_match_mapped(
                     static_cast<uint64_t>(doc_id) >= num_locators_) {
                     continue;  // out-of-range member: nothing to score
                 }
-                const detail::DocLocator loc = doc_locators_[doc_id];
-                const term_t* comps = nullptr;
-                const uint8_t* vals = nullptr;
-                size_t doc_nnz = 0;
-                if (loc.posting_list == detail::DocLocator::kRemainder) {
-                    if (loc.block >= remainder_.num_vectors()) {
-                        throw std::runtime_error(
-                            "DiskSeismic exact match: remainder locator out of "
-                            "range");
-                    }
-                    const idx_t* r_indptr = remainder_.indptr_data();
-                    const idx_t r_start = r_indptr[loc.block];
-                    doc_nnz =
-                        static_cast<size_t>(r_indptr[loc.block + 1] - r_start);
-                    comps = remainder_.indices_data() + r_start;
-                    vals = remainder_.values_data() +
-                           static_cast<size_t>(r_start) * element_size;
-                } else {
-                    const detail::BlockView bv =
-                        fwd_.block(loc.posting_list, loc.block);
-                    if (bv.absent() || loc.slot >= bv.n_docs ||
-                        bv.doc_ids[loc.slot] != static_cast<uint32_t>(doc_id)) {
-                        throw std::runtime_error(
-                            "DiskSeismic exact match: doc locator does not "
-                            "resolve to its doc");
-                    }
-                    comps = bv.doc_comps(loc.slot);
-                    vals = bv.doc_vals(loc.slot, element_size);
-                    doc_nnz = bv.nnz(loc.slot);
-                }
+                const DocSlice doc = get_doc(doc_id, element_size);
                 // Dot the doc's slice against the dense query via a 2-entry
                 // indptr.
-                const idx_t slice_indptr[2] = {0, static_cast<idx_t>(doc_nnz)};
+                const idx_t slice_indptr[2] = {0,
+                                               static_cast<idx_t>(doc.nnz)};
                 const float score = detail::compute_similarity(
-                    0, slice_indptr, comps, vals, dense.data(), element_size);
+                    0, slice_indptr, doc.comps, doc.vals, dense.data(),
+                    element_size);
                 holder.add(score, doc_id);
             }
 

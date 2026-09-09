@@ -136,12 +136,25 @@ private:
     // same clusters and vectors as the inline forward.
     void write_doc_directory(IOWriter* io_writer,
                              const SparseVectors& vectors) const;
-    // Scores every selected doc directly through the directory, for a mapped
-    // index. Requires doc_locators_ populated.
-    auto exact_match_mapped(idx_t n, const idx_t* indptr, const term_t* indices,
-                            const float* values, int k,
-                            const IDSelectorEnumerable& selector,
-                            const SearchParameters* search_parameters) const
+
+    // One doc's within-doc slice: component ids, element_size-wide codes, and
+    // the count. Borrowed from the live mapping or remainder_ (both outlive the
+    // call), so valid only within one search().
+    struct DocSlice {
+        const term_t* comps = nullptr;
+        const uint8_t* vals = nullptr;
+        size_t nnz = 0;
+    };
+    // Resolves one selected doc's full vector through the doc-locator
+    // directory: an inline-forward block slot, or a row of remainder_ when the
+    // doc was pruned from every block. Throws on a corrupt locator.
+    [[nodiscard]] DocSlice get_doc(idx_t doc_id, size_t element_size) const;
+    // Scores every selected doc directly through the doc-locator directory, for
+    // a mapped index. Requires doc_locators_ populated.
+    [[nodiscard]] auto exact_match_directory(
+        idx_t n, const idx_t* indptr, const term_t* indices,
+        const float* values, int k, const IDSelectorEnumerable& selector,
+        const SearchParameters* search_parameters) const
         -> pair_of_score_id_vectors_t;
 
     SeismicClusterParameters cluster_parameter_;
