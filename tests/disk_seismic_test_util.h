@@ -17,6 +17,7 @@
 #include <random>
 #include <set>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -79,6 +80,31 @@ inline CSR make_corpus(idx_t rows, unsigned seed) {
     return c;
 }
 
+// A corpus whose last `n_victims` docs are pruned from every posting list, so
+// they end up in the remainder store rather than an inline block: each victim
+// carries only term 0 at a weight below every filler, and term 0 has far more
+// than kLambda higher-weight fillers (each filler also owns a unique term, so
+// it always survives via its own single-doc list). Victim ids are
+// [n_fillers, n_fillers + n_victims). Requires n_fillers > kLambda.
+inline CSR make_corpus_with_remainder(int n_fillers, int n_victims) {
+    CSR c;
+    c.n = n_fillers + n_victims;
+    c.indptr.push_back(0);
+    for (int r = 0; r < n_fillers; ++r) {
+        c.indices.push_back(0);
+        c.values.push_back(1.0F);
+        c.indices.push_back(static_cast<term_t>(r + 1));
+        c.values.push_back(1.0F);
+        c.indptr.push_back(static_cast<idx_t>(c.indices.size()));
+    }
+    for (int v = 0; v < n_victims; ++v) {
+        c.indices.push_back(0);
+        c.values.push_back(0.01F);
+        c.indptr.push_back(static_cast<idx_t>(c.indices.size()));
+    }
+    return c;
+}
+
 inline void add_corpus(Index& index, const CSR& c) {
     index.add(c.n, c.indptr.data(), c.indices.data(), c.values.data());
 }
@@ -127,6 +153,19 @@ inline ScoreIds search_all(Index& index, const CSR& queries, int k,
         }
     }
     return out;
+}
+
+// Asserts every selector member appears in each query's results.
+inline void expect_all_members_returned(const ScoreIds& got,
+                                        const std::vector<idx_t>& members) {
+    for (size_t q = 0; q < got.second.size(); ++q) {
+        const std::unordered_set<idx_t> returned(got.second[q].begin(),
+                                                 got.second[q].end());
+        for (const idx_t member : members) {
+            EXPECT_GT(returned.count(member), 0U)
+                << "query " << q << " dropped selector member " << member;
+        }
+    }
 }
 
 inline void expect_same_results(const ScoreIds& a, const ScoreIds& b) {

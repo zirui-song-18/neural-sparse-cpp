@@ -15,15 +15,31 @@
 #include <vector>
 
 #include "nsparse/cluster/inverted_list_clusters.h"
+#include "nsparse/id_selector.h"
 #include "nsparse/index.h"
 #include "nsparse/io/inline_forward_index_io.h"
 #include "nsparse/io/io.h"
 #include "nsparse/mmap_index.h"
+#include "nsparse/sparse_vectors.h"
 #include "nsparse/types.h"
 #include "nsparse/utils/mmap_cursor.h"
 #include "nsparse/utils/mmap_file.h"
 
 namespace nsparse {
+
+namespace detail {
+// Locates one full copy of a doc's vector. When posting_list == kRemainder the
+// vector is row `block` of the remainder store; otherwise it is slot `slot` of
+// inline-forward block (posting_list, block).
+struct DocLocator {
+    uint32_t posting_list;
+    uint32_t block;
+    uint32_t slot;
+    static constexpr uint32_t kRemainder = UINT32_MAX;
+};
+static_assert(sizeof(DocLocator) == 12,
+              "DocLocator is borrowed from the mapping");
+}  // namespace detail
 
 // Shared implementation of the two disk-resident SEISMIC indexes: the cluster
 // summaries live in RAM, the per-document forward vectors live on disk in the
@@ -116,8 +132,38 @@ private:
     void read_index(IOReader* io_reader, const IndexHeader& header,
                     int io_flags = 0) override;
 
+    // Appends the doc-locator directory and remainder vectors, built from the
+    // same clusters and vectors as the inline forward.
+    void write_doc_directory(IOWriter* io_writer,
+                             const SparseVectors& vectors) const;
+
+    // One doc's within-doc slice: component ids, element_size-wide codes, and
+    // the count. Borrowed from the live mapping or remainder_ (both outlive the
+    // call), so valid only within one search().
+    struct DocSlice {
+        const term_t* comps = nullptr;
+        const uint8_t* vals = nullptr;
+        size_t nnz = 0;
+    };
+    // Resolves one selected doc's full vector through the doc-locator
+    // directory: an inline-forward block slot, or a row of remainder_ when the
+    // doc was pruned from every block. Throws on a corrupt locator.
+    [[nodiscard]] DocSlice get_doc(idx_t doc_id, size_t element_size) const;
+    // Scores every selected doc directly through the doc-locator directory, for
+    // a mapped index. Requires doc_locators_ populated.
+    [[nodiscard]] auto exact_match_directory(
+        idx_t n, const idx_t* indptr, const term_t* indices,
+        const float* values, int k, const IDSelectorEnumerable& selector,
+        const SearchParameters* search_parameters) const
+        -> pair_of_score_id_vectors_t;
+
     SeismicClusterParameters cluster_parameter_;
     size_t num_vectors_ = 0;
+    // A borrowed per-doc locator table plus the full vectors of the docs that
+    // are missing from every block, used by the mapped-index exact match.
+    const detail::DocLocator* doc_locators_ = nullptr;
+    uint64_t num_locators_ = 0;
+    SparseVectors remainder_;
 };
 
 }  // namespace nsparse
