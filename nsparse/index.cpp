@@ -29,7 +29,7 @@ Index::Index(int dim) : dimension_(dim) {}
 
 void Index::build() { throw_not_implemented(); }
 
-void Index::search(idx_t n, const idx_t* indptr, const term_t* indices,
+void Index::search(idx_t n, const offset_t* indptr, const term_t* indices,
                    const float* values, int k, float* distances, idx_t* labels,
                    SearchParameters* search_parameters) {
     throw_if_not_positive(n);
@@ -48,14 +48,14 @@ void Index::search(idx_t n, const idx_t* indptr, const term_t* indices,
     }
 }
 
-auto Index::search(idx_t n, const idx_t* indptr, const term_t* indices,
+auto Index::search(idx_t n, const offset_t* indptr, const term_t* indices,
                    const float* values, int k,
                    SearchParameters* search_parameters)
     -> pair_of_score_id_vectors_t {
     throw_not_implemented("search not implementted in Index");
 }
 
-void Index::add_with_ids(idx_t n, const idx_t* indptr, const term_t* indices,
+void Index::add_with_ids(idx_t n, const offset_t* indptr, const term_t* indices,
                          const float* values, const idx_t* ids) {
     throw_not_implemented("add_with_ids not implemented in Index");
 }
@@ -92,10 +92,10 @@ void Index::read_csr(const char* file_path, Residency residency) {
         throw std::invalid_argument(std::string("Invalid CSR header in: ") +
                                     file_path);
     }
-    if (num_rows > std::numeric_limits<idx_t>::max() ||
-        nnz > std::numeric_limits<idx_t>::max()) {
-        throw std::invalid_argument(std::string("CSR file too large for ") +
-                                    "32-bit offsets: " + file_path);
+    if (num_rows > std::numeric_limits<idx_t>::max()) {
+        throw std::invalid_argument(
+            std::string("CSR row count exceeds 32-bit doc-id range: ") +
+            file_path);
     }
     if (num_cols > dimension_) {
         throw std::invalid_argument(
@@ -119,7 +119,6 @@ void Index::read_csr(const char* file_path, Residency residency) {
         throw std::invalid_argument(
             std::string("Inconsistent CSR indptr in: ") + file_path);
     }
-    std::vector<idx_t> indptr(file_indptr.begin(), file_indptr.end());
 
     std::vector<int32_t> file_indices(nnz_size);
     read_or_throw(file_indices.data(), file_indices.size() * sizeof(int32_t));
@@ -137,7 +136,7 @@ void Index::read_csr(const char* file_path, Residency residency) {
     std::vector<float> values(nnz_size);
     read_or_throw(values.data(), values.size() * sizeof(float));
 
-    add(static_cast<idx_t>(num_rows), indptr.data(), indices.data(),
+    add(static_cast<idx_t>(num_rows), file_indptr.data(), indices.data(),
         values.data());
 }
 }  // namespace nsparse

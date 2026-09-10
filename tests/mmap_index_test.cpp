@@ -30,7 +30,7 @@ public:
 
     std::array<char, 4> id() const override { return {'M', 'M', 'A', 'P'}; }
 
-    void add(nsparse::idx_t n, const nsparse::idx_t* indptr,
+    void add(nsparse::idx_t n, const nsparse::offset_t* indptr,
              const nsparse::term_t* indices, const float* values) override {
         num_added = n;
         ++add_calls;
@@ -58,17 +58,18 @@ public:
     TempNativeCSRFile& operator=(const TempNativeCSRFile&) = delete;
 
     void write(int64_t num_rows, int64_t num_cols, int64_t nnz,
-               const std::vector<nsparse::idx_t>& indptr,
+               const std::vector<nsparse::offset_t>& indptr,
                const std::vector<nsparse::term_t>& indices,
                const std::vector<float>& values) {
         std::ofstream file(path_, std::ios::binary);
         const std::array<int64_t, 3> header = {num_rows, num_cols, nnz};
         write_all(file, header.data(), header.size() * sizeof(int64_t));
-        write_all(file, indptr.data(), indptr.size() * sizeof(nsparse::idx_t));
+        write_all(file, indptr.data(),
+                  indptr.size() * sizeof(nsparse::offset_t));
         write_all(file, indices.data(),
                   indices.size() * sizeof(nsparse::term_t));
         const size_t unaligned = header.size() * sizeof(int64_t) +
-                                 indptr.size() * sizeof(nsparse::idx_t) +
+                                 indptr.size() * sizeof(nsparse::offset_t) +
                                  indices.size() * sizeof(nsparse::term_t);
         const std::array<uint8_t, sizeof(float)> padding{};
         write_all(file, padding.data(), unaligned % alignof(float) == 0
@@ -150,7 +151,7 @@ TEST(MmapIndexReadCSR, values_point_into_the_mapping) {
         reinterpret_cast<const uint8_t*>(vectors->indptr_data());
     const auto* indices_bytes =
         reinterpret_cast<const uint8_t*>(vectors->indices_data());
-    ASSERT_EQ(indices_bytes - indptr_bytes, 2 * sizeof(nsparse::idx_t));
+    ASSERT_EQ(indices_bytes - indptr_bytes, 2 * sizeof(nsparse::offset_t));
 }
 
 TEST(MmapIndexReadCSR, falls_back_to_index_read_csr_when_disabled) {

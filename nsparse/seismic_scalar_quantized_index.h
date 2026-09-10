@@ -50,7 +50,7 @@ public:
     SeismicScalarQuantizedIndex& operator=(const SeismicScalarQuantizedIndex&) =
         delete;
     std::array<char, 4> id() const override { return name; }
-    void add(idx_t n, const idx_t* indptr, const term_t* indices,
+    void add(idx_t n, const offset_t* indptr, const term_t* indices,
              const float* values) override;
     void build() override;
 
@@ -86,7 +86,7 @@ private:
     // SeismicIndex and as the base signature's default argument implies. This
     // index used to reject it, which made that default argument -- and the
     // bindings' params=None -- unusable here alone.
-    auto search(idx_t n, const idx_t* indptr, const term_t* indices,
+    auto search(idx_t n, const offset_t* indptr, const term_t* indices,
                 const float* values, int k,
                 SearchParameters* search_parameters = nullptr)
         -> pair_of_score_id_vectors_t override;

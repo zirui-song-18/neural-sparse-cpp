@@ -114,10 +114,10 @@ std::vector<TermWindow> make_windows(const std::vector<size_t>& term_counts,
 std::vector<size_t> count_postings_per_term(const SparseVectors& vectors,
                                             size_t dim) {
     std::vector<size_t> counts(dim, 0);
-    const idx_t* indptr = vectors.indptr_data();
+    const offset_t* indptr = vectors.indptr_data();
     const term_t* indices = vectors.indices_data();
-    const idx_t nnz = indptr[vectors.num_vectors()];
-    for (idx_t j = 0; j < nnz; ++j) {
+    const offset_t nnz = indptr[vectors.num_vectors()];
+    for (offset_t j = 0; j < nnz; ++j) {
         const size_t term = indices[j];
         if (term >= dim) {
             throw std::invalid_argument(
@@ -198,12 +198,12 @@ private:
 // cost the ordering and buy nothing.
 void fill_from_corpus(const SparseVectors& vectors, const TermWindow& window,
                       size_t element_size, WindowLists* lists) {
-    const idx_t* indptr = vectors.indptr_data();
+    const offset_t* indptr = vectors.indptr_data();
     const term_t* indices = vectors.indices_data();
     const uint8_t* codes = vectors.values_data();
     const auto n_docs = static_cast<idx_t>(vectors.num_vectors());
     for (idx_t doc = 0; doc < n_docs; ++doc) {
-        for (idx_t j = indptr[doc]; j < indptr[doc + 1]; ++j) {
+        for (offset_t j = indptr[doc]; j < indptr[doc + 1]; ++j) {
             const size_t term = indices[j];
             if (term < window.begin || term >= window.end) {
                 continue;

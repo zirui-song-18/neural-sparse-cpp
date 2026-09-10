@@ -89,10 +89,18 @@ public:
     // are a cheap identity check.
     const DeviceCorpus& ensure_resident(const SparseVectors* vectors) {
         const size_t n_vectors = vectors->num_vectors();
-        const idx_t* indptr = vectors->indptr_data();
+        const offset_t* indptr = vectors->indptr_data();
         const term_t* indices = vectors->indices_data();
         const float* values = vectors->values_data_float();
         const int64_t nnz = indptr[n_vectors];
+
+        // The device stores CSR offsets as int32 (and cuSPARSE's CSR API is
+        // 32-bit), so this path cannot represent nnz > INT32_MAX; rebuild such a
+        // corpus with the CPU path.
+        if (nnz > INT32_MAX) {
+            throw std::runtime_error(
+                "GPU build path requires nnz <= INT32_MAX; use the CPU path");
+        }
 
         std::lock_guard<std::mutex> lock(mutex_);
         if (corpus_.matches(vectors, n_vectors, nnz)) {
@@ -100,6 +108,10 @@ public:
         }
         free_locked();
 
+        std::vector<int32_t> indptr32(n_vectors + 1);
+        for (size_t i = 0; i <= n_vectors; ++i) {
+            indptr32[i] = static_cast<int32_t>(indptr[i]);
+        }
         std::vector<int32_t> indices32(static_cast<size_t>(nnz));
         for (int64_t i = 0; i < nnz; ++i) {
             indices32[i] = static_cast<int32_t>(indices[i]);
@@ -110,7 +122,7 @@ public:
                    "cudaMalloc(corpus.indices)");
         check_cuda(cudaMalloc(&corpus_.values, nnz * sizeof(float)),
                    "cudaMalloc(corpus.values)");
-        check_cuda(cudaMemcpy(corpus_.indptr, indptr,
+        check_cuda(cudaMemcpy(corpus_.indptr, indptr32.data(),
                               (n_vectors + 1) * sizeof(int32_t),
                               cudaMemcpyHostToDevice),
                    "cudaMemcpy(corpus.indptr)");

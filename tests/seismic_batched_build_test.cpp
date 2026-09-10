@@ -50,7 +50,7 @@ constexpr float kAlpha = 0.4F;
 struct Corpus {
     int dim;
     idx_t n = 0;
-    std::vector<idx_t> indptr;
+    std::vector<offset_t> indptr;
     std::vector<term_t> indices;
     std::vector<float> values;
 };
@@ -77,7 +77,7 @@ Corpus make_corpus(int n_docs, int dim, unsigned seed) {
             corpus.indices.push_back(static_cast<term_t>(term));
             corpus.values.push_back(val_dist(gen));
         }
-        corpus.indptr.push_back(static_cast<idx_t>(corpus.indices.size()));
+        corpus.indptr.push_back(static_cast<offset_t>(corpus.indices.size()));
     }
     return corpus;
 }
@@ -389,7 +389,7 @@ TEST(SeismicBatchedBuild, HandlesATermHeavierThanAWholeWindow) {
     skewed.indptr.push_back(0);
     for (idx_t doc = 0; doc < corpus.n; ++doc) {
         std::vector<std::pair<term_t, float>> row;
-        for (idx_t j = corpus.indptr[doc]; j < corpus.indptr[doc + 1]; ++j) {
+        for (offset_t j = corpus.indptr[doc]; j < corpus.indptr[doc + 1]; ++j) {
             if (corpus.indices[j] != 7) {
                 row.emplace_back(corpus.indices[j], corpus.values[j]);
             }
@@ -400,7 +400,7 @@ TEST(SeismicBatchedBuild, HandlesATermHeavierThanAWholeWindow) {
             skewed.indices.push_back(term);
             skewed.values.push_back(value);
         }
-        skewed.indptr.push_back(static_cast<idx_t>(skewed.indices.size()));
+        skewed.indptr.push_back(static_cast<offset_t>(skewed.indices.size()));
     }
 
     TempDir dir("skewed");

@@ -97,7 +97,7 @@ InlineForwardIndex& InlineForwardIndex::operator=(
 }
 
 InlineForwardIndex::BlockCounts InlineForwardIndex::count_block(
-    std::span<const idx_t> docs, const idx_t* indptr, size_t num_vectors) {
+    std::span<const idx_t> docs, const offset_t* indptr, size_t num_vectors) {
     // n_docs and the within-block offsets are u32 on the wire.
     if (docs.size() > UINT32_MAX) {
         throw std::length_error(
@@ -133,7 +133,7 @@ uint64_t InlineForwardIndex::section_length() const {
             "InlineForwardIndex: element_size must be 1, 2, or 4, got " +
             std::to_string(element_size));
     }
-    const idx_t* indptr = vectors.indptr_data();
+    const offset_t* indptr = vectors.indptr_data();
     const size_t num_vectors = vectors.num_vectors();
     const uint64_t align = write_alignment();
 
@@ -200,7 +200,7 @@ void InlineForwardIndex::write_body(IOWriter* writer) const {
             "InlineForwardIndex: element_size must be 1, 2, or 4, got " +
             std::to_string(element_size));
     }
-    const idx_t* indptr = vectors.indptr_data();
+    const offset_t* indptr = vectors.indptr_data();
     const term_t* indices = vectors.indices_data();
     const uint8_t* values = vectors.values_data();
     const size_t num_vectors = vectors.num_vectors();
@@ -269,7 +269,7 @@ void InlineForwardIndex::write_body(IOWriter* writer) const {
             // comps[] then (pad to element_size) then vals[], each doc's slice
             // concatenated in block order.
             for (const idx_t doc_id : docs) {
-                const idx_t start = indptr[doc_id];
+                const offset_t start = indptr[doc_id];
                 const size_t nnz = indptr[doc_id + 1] - start;
                 if (nnz > 0) {
                     writer->write(const_cast<term_t*>(indices + start),
@@ -284,7 +284,7 @@ void InlineForwardIndex::write_body(IOWriter* writer) const {
                               vals_pad);
             }
             for (const idx_t doc_id : docs) {
-                const idx_t start = indptr[doc_id];
+                const offset_t start = indptr[doc_id];
                 const size_t nnz = indptr[doc_id + 1] - start;
                 if (nnz > 0) {
                     writer->write(

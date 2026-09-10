@@ -77,11 +77,11 @@ void score_block(const InlineForwardIndex* fwd, const SparseVectors* vectors,
                       element_size, id_selector, heap, visited);
         }
     } else if (vectors != nullptr) {
-        const idx_t* const indptr = vectors->indptr_data();
+        const offset_t* const indptr = vectors->indptr_data();
         const term_t* const indices = vectors->indices_data();
         const uint8_t* const values = vectors->values_data();
         for (const idx_t doc_id : clusters[pl].get_docs(cid)) {
-            const idx_t start = indptr[doc_id];
+            const offset_t start = indptr[doc_id];
             const size_t len = indptr[doc_id + 1] - start;
             score_doc(doc_id, indices + start,
                       values + static_cast<size_t>(start) * element_size, len,

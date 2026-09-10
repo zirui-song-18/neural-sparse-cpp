@@ -168,13 +168,13 @@ import_array();
 // (labels and distances have numinputs=0, so both would appear as 5-arg functions to Python)
 %extend nsparse::Index {
     // Version without SearchParameters
-    void search_c(idx_t n, const idx_t* indptr, const term_t* indices,
+    void search_c(idx_t n, const offset_t* indptr, const term_t* indices,
                   const float* values, int k, float* distances, idx_t* labels) {
         $self->search(n, indptr, indices, values, k, distances, labels, nullptr);
     }
     
     // Version with SearchParameters - different name to avoid overload ambiguity
-    void search_with_params(idx_t n, const idx_t* indptr, const term_t* indices,
+    void search_with_params(idx_t n, const offset_t* indptr, const term_t* indices,
                             const float* values, int k, float* distances,
                             idx_t* labels,
                             nsparse::SearchParameters* search_parameters) {

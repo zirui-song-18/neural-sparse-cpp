@@ -111,10 +111,10 @@ private:
             throw std::invalid_argument(std::string("Invalid CSR header in: ") +
                                         file_path);
         }
-        if (num_rows > std::numeric_limits<idx_t>::max() ||
-            nnz > std::numeric_limits<idx_t>::max()) {
-            throw std::invalid_argument(std::string("CSR file too large for ") +
-                                        "32-bit offsets: " + file_path);
+        if (num_rows > std::numeric_limits<idx_t>::max()) {
+            throw std::invalid_argument(
+                std::string("CSR row count exceeds 32-bit doc-id range: ") +
+                file_path);
         }
         if (num_cols > dimension_) {
             throw std::invalid_argument(
@@ -139,7 +139,7 @@ private:
                 file_path);
         }
 
-        const auto* indptr = cursor.read_array<idx_t>(indptr_size);
+        const auto* indptr = cursor.read_array<offset_t>(indptr_size);
         const auto* indices = cursor.read_array<term_t>(nnz_size);
         cursor.skip(csr_layout::native_values_offset(indptr_size, nnz_size) -
                     cursor.pos());

@@ -216,10 +216,10 @@ void streaming_add(nsparse::Index* index, const std::string& path) {
         const int64_t bnnz = indptr64[row_end] - indptr64[row_start];
         const int64_t boff = indptr64[row_start];
 
-        std::vector<nsparse::idx_t> bindptr(brows + 1);
+        std::vector<nsparse::offset_t> bindptr(brows + 1);
         for (int64_t i = 0; i <= brows; ++i) {
             bindptr[i] =
-                static_cast<nsparse::idx_t>(indptr64[row_start + i] - boff);
+                static_cast<nsparse::offset_t>(indptr64[row_start + i] - boff);
         }
         std::vector<nsparse::term_t> bindices(bnnz);
         {

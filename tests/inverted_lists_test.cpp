@@ -643,7 +643,7 @@ std::unique_ptr<nsparse::ArrayInvertedLists> lists_for_io() {
                                         .dimension = 3};
     nsparse::SparseVectors vectors(config);
     // doc0: {0: 1.5, 2: 2.5}, doc1: {0: 0.5}, doc2: {0: 3.5}
-    std::vector<nsparse::idx_t> indptr = {0, 2, 3, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 3, 4};
     std::vector<nsparse::term_t> indices = {0, 2, 0, 0};
     std::vector<float> values = {1.5F, 2.5F, 0.5F, 3.5F};
     vectors.add_vectors(indptr.data(), indptr.size(), indices.data(),

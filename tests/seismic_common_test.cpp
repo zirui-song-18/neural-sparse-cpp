@@ -117,7 +117,7 @@ TEST(CalculateSummaryScores, multiple_vectors) {
 TEST(ComputeSimilarity, float_element_size) {
     // 2 docs: doc0 has indices {1}, values {2.0f}; doc1 has indices {0,2},
     // values {1.0f, 3.0f}
-    std::vector<idx_t> indptr = {0, 1, 3};
+    std::vector<offset_t> indptr = {0, 1, 3};
     std::vector<term_t> indices = {1, 0, 2};
 
     // Values stored as raw bytes
@@ -142,7 +142,7 @@ TEST(ComputeSimilarity, float_element_size) {
 }
 
 TEST(ComputeSimilarity, uint16_element_size) {
-    std::vector<idx_t> indptr = {0, 2};
+    std::vector<offset_t> indptr = {0, 2};
     std::vector<term_t> indices = {0, 1};
 
     std::vector<uint8_t> values(2 * sizeof(uint16_t));
@@ -160,7 +160,7 @@ TEST(ComputeSimilarity, uint16_element_size) {
 }
 
 TEST(ComputeSimilarity, uint8_element_size) {
-    std::vector<idx_t> indptr = {0, 3};
+    std::vector<offset_t> indptr = {0, 3};
     std::vector<term_t> indices = {0, 1, 2};
     std::vector<uint8_t> values = {2, 3, 4};
     std::vector<uint8_t> dense = {10, 20, 30};
@@ -172,7 +172,7 @@ TEST(ComputeSimilarity, uint8_element_size) {
 }
 
 TEST(ComputeSimilarity, empty_doc) {
-    std::vector<idx_t> indptr = {0, 0};
+    std::vector<offset_t> indptr = {0, 0};
     std::vector<term_t> indices = {};
     std::vector<uint8_t> values = {};
     std::vector<uint8_t> dense = {1, 2, 3};

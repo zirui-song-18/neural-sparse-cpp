@@ -24,7 +24,7 @@ namespace nsparse {
 
 BrutalIndex::BrutalIndex(int dim) : Index(dim) {}
 
-void BrutalIndex::add(idx_t n, const idx_t* indptr, const term_t* indices,
+void BrutalIndex::add(idx_t n, const offset_t* indptr, const term_t* indices,
                       const float* values) {
     throw_if_not_positive(n);
     throw_if_any_null(indptr, indices, values);
@@ -42,7 +42,7 @@ void BrutalIndex::add(idx_t n, const idx_t* indptr, const term_t* indices,
                           nnz * element_size);
 }
 
-auto BrutalIndex::search(idx_t n, const idx_t* indptr, const term_t* indices,
+auto BrutalIndex::search(idx_t n, const offset_t* indptr, const term_t* indices,
                          const float* values, int k,
                          SearchParameters* search_parameters)
     -> pair_of_score_id_vectors_t {
@@ -84,7 +84,7 @@ auto BrutalIndex::single_query(const std::vector<float>& dense, int k)
     const auto& [indptr, indices, values] = vectors_->get_all_data();
 
     for (size_t i = 0; i < num_docs; ++i) {
-        const idx_t start = indptr[i];
+        const offset_t start = indptr[i];
         const size_t len = indptr[i + 1] - start;
         float score = detail::dot_product_float_dense(
             indices + start, values + start, len, dense.data());

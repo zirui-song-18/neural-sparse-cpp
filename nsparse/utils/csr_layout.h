@@ -19,8 +19,8 @@
 // Two on-disk CSR layouts, both after an int64 header of (rows, cols, nnz):
 //
 //   interchange           native
-//   int64  indptr[r + 1]  idx_t  indptr[r + 1]
-//   int32  indices[nnz]   term_t indices[nnz]
+//   int64  indptr[r + 1]  offset_t indptr[r + 1]
+//   int32  indices[nnz]   term_t   indices[nnz]
 //                         <padding to 4 bytes>
 //   float  values[nnz]    value  values[nnz]
 //
@@ -53,7 +53,7 @@ constexpr size_t interchange_file_size(size_t indptr_size, size_t nnz) {
 
 constexpr size_t native_values_offset(size_t indptr_size, size_t nnz) {
     const size_t unaligned =
-        kHeaderBytes + indptr_size * sizeof(idx_t) + nnz * sizeof(term_t);
+        kHeaderBytes + indptr_size * sizeof(offset_t) + nnz * sizeof(term_t);
     return unaligned + padding(unaligned);
 }
 

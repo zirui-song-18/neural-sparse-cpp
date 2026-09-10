@@ -42,7 +42,7 @@ DiskSeismicIndexBase::DiskSeismicIndexBase(int dim,
                                            SeismicClusterParameters parameter)
     : MmapIndex(dim), cluster_parameter_(parameter) {}
 
-void DiskSeismicIndexBase::add(idx_t n, const idx_t* indptr,
+void DiskSeismicIndexBase::add(idx_t n, const offset_t* indptr,
                                const term_t* indices, const float* values) {
     throw_if_not_positive(n);
     throw_if_any_null(indptr, indices, values);
@@ -70,7 +70,7 @@ void DiskSeismicIndexBase::build() {
         &batch_spill_);
 }
 
-auto DiskSeismicIndexBase::search(idx_t n, const idx_t* indptr,
+auto DiskSeismicIndexBase::search(idx_t n, const offset_t* indptr,
                                   const term_t* indices, const float* values,
                                   int k, SearchParameters* search_parameters)
     -> pair_of_score_id_vectors_t {
@@ -174,7 +174,7 @@ auto DiskSeismicIndexBase::search(idx_t n, const idx_t* indptr,
 
 #pragma omp for schedule(dynamic, 64)
         for (idx_t query_idx = 0; query_idx < n; ++query_idx) {
-            const idx_t start = indptr[query_idx];
+            const offset_t start = indptr[query_idx];
             const size_t len = indptr[query_idx + 1] - start;
             const term_t* query_indices = indices + start;
             const uint8_t* query_codes =
@@ -251,7 +251,7 @@ void DiskSeismicIndexBase::write_doc_directory(
     SparseVectors remainder(
         {.element_size = element_size,
          .dimension = static_cast<size_t>(get_dimension())});
-    const idx_t* indptr = vectors.indptr_data();
+    const offset_t* indptr = vectors.indptr_data();
     const term_t* indices = vectors.indices_data();
     const uint8_t* values = vectors.values_data();
     uint32_t remainder_row = 0;
@@ -259,9 +259,9 @@ void DiskSeismicIndexBase::write_doc_directory(
         if (covered[doc_id]) {
             continue;
         }
-        const idx_t start = indptr[doc_id];
+        const offset_t start = indptr[doc_id];
         const size_t nnz = static_cast<size_t>(indptr[doc_id + 1] - start);
-        const idx_t row_indptr[2] = {0, static_cast<idx_t>(nnz)};
+        const offset_t row_indptr[2] = {0, static_cast<offset_t>(nnz)};
         remainder.add_vectors(
             row_indptr, 2, indices + start, nnz,
             values + static_cast<size_t>(start) * element_size,
@@ -334,8 +334,8 @@ auto DiskSeismicIndexBase::get_doc(idx_t doc_id, size_t element_size) const
             throw std::runtime_error(
                 "DiskSeismic exact match: remainder locator out of range");
         }
-        const idx_t* r_indptr = remainder_.indptr_data();
-        const idx_t r_start = r_indptr[loc.block];
+        const offset_t* r_indptr = remainder_.indptr_data();
+        const offset_t r_start = r_indptr[loc.block];
         return {remainder_.indices_data() + r_start,
                 remainder_.values_data() +
                     static_cast<size_t>(r_start) * element_size,
@@ -352,7 +352,7 @@ auto DiskSeismicIndexBase::get_doc(idx_t doc_id, size_t element_size) const
 }
 
 auto DiskSeismicIndexBase::exact_match_directory(
-    idx_t n, const idx_t* indptr, const term_t* indices, const float* values,
+    idx_t n, const offset_t* indptr, const term_t* indices, const float* values,
     int k, const IDSelectorEnumerable& selector,
     const SearchParameters* search_parameters) const
     -> pair_of_score_id_vectors_t {
@@ -374,7 +374,7 @@ auto DiskSeismicIndexBase::exact_match_directory(
         std::vector<uint8_t> dense(dense_bytes, 0);
 #pragma omp for schedule(dynamic, 64)
         for (idx_t query_idx = 0; query_idx < n; ++query_idx) {
-            const idx_t start = indptr[query_idx];
+            const offset_t start = indptr[query_idx];
             const size_t len =
                 static_cast<size_t>(indptr[query_idx + 1] - start);
             const term_t* q_indices = indices + start;
@@ -396,8 +396,8 @@ auto DiskSeismicIndexBase::exact_match_directory(
                 const DocSlice doc = get_doc(doc_id, element_size);
                 // Dot the doc's slice against the dense query via a 2-entry
                 // indptr.
-                const idx_t slice_indptr[2] = {0,
-                                               static_cast<idx_t>(doc.nnz)};
+                const offset_t slice_indptr[2] = {
+                    0, static_cast<offset_t>(doc.nnz)};
                 const float score = detail::compute_similarity(
                     0, slice_indptr, doc.comps, doc.vals, dense.data(),
                     element_size);

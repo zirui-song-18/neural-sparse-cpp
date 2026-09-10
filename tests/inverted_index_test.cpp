@@ -34,7 +34,7 @@ namespace {
 // Helper to add docs from map format: {{term: value, ...}, ...}
 void add_docs(InvertedIndex& index,
               const std::vector<std::map<int, float>>& docs) {
-    std::vector<idx_t> indptr;
+    std::vector<offset_t> indptr;
     std::vector<term_t> indices;
     std::vector<float> values;
 
@@ -44,7 +44,7 @@ void add_docs(InvertedIndex& index,
             indices.push_back(static_cast<term_t>(term));
             values.push_back(value);
         }
-        indptr.push_back(static_cast<idx_t>(indices.size()));
+        indptr.push_back(static_cast<offset_t>(indices.size()));
     }
 
     index.add(static_cast<idx_t>(docs.size()), indptr.data(), indices.data(),
@@ -107,7 +107,7 @@ TEST(InvertedIndexSearch, search_returns_empty_when_not_built) {
     InvertedIndex index(5);
     Index* idx = &index;
 
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 0.5F};
     std::vector<idx_t> labels(5, -1);
@@ -128,7 +128,7 @@ TEST(InvertedIndexSearch, search_finds_matching_doc) {
     add_docs(index, {{{0, 1.0F}, {1, 0.5F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(1, -1);
@@ -148,7 +148,7 @@ TEST(InvertedIndexSearch, search_multiple_queries) {
     add_docs(index, {{{0, 1.0F}, {1, 0.5F}}, {{2, 0.8F}, {3, 0.6F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1, 2};
+    std::vector<offset_t> query_indptr = {0, 1, 2};
     std::vector<term_t> query_indices = {0, 2};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<idx_t> labels(2, -1);
@@ -168,7 +168,7 @@ TEST(InvertedIndexSearch, search_respects_k_limit) {
     add_docs(index, {{{0, 1.0F}}, {{0, 0.9F}}, {{0, 0.8F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(2, -1);
@@ -190,7 +190,7 @@ TEST(InvertedIndexSearch, search_returns_results_sorted_by_score) {
     add_docs(index, {{{0, 0.3F}}, {{0, 1.0F}}, {{0, 0.5F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(3, -1);
@@ -213,7 +213,7 @@ TEST(InvertedIndexSearch, search_with_no_matching_term) {
     index.build();
 
     // Query with term 3 which no doc has
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {3};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(1, -1);
@@ -241,7 +241,7 @@ TEST(InvertedIndexSearch, search_multi_term_dot_product) {
     // Scores: doc0 = 1.0*1.0 + 0.5*0.8 = 1.4
     //         doc1 = 0.8*1.0 = 0.8
     //         doc2 = 0.9*0.8 = 0.72
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 0.8F};
     std::vector<idx_t> labels(3, -1);
@@ -265,7 +265,7 @@ TEST(InvertedIndexSearch, search_k_larger_than_num_docs) {
     add_docs(index, {{{0, 1.0F}}, {{0, 0.5F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(5, -1);
@@ -330,7 +330,7 @@ TEST(InvertedIndexIO, write_and_read_search_produces_same_results) {
     original.build();
 
     // Search on original
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 0.8F};
     std::vector<idx_t> labels_original(3, -1);
@@ -381,7 +381,7 @@ TEST(InvertedIndexIO, write_and_read_with_empty_posting_lists) {
     EXPECT_EQ(loaded->get_dimension(), 5);
 
     // Verify search still works — query term 0
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(1, -1);
@@ -409,7 +409,7 @@ TEST(InvertedIndexIO, write_and_read_multiple_docs_per_term) {
     Index* loaded = read_index(&reader);
 
     // Search for all 4 docs
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(4, -1);
@@ -471,7 +471,7 @@ TEST(InvertedIndexSearch, search_multi_window_no_crash) {
     index.build();
 
     // Query both terms — forces multi-term scoring across multiple windows.
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
 
@@ -510,7 +510,7 @@ TEST(InvertedIndexSearch, search_with_id_selector_filters_results) {
     SearchParameters params;
     params.set_id_selector(&selector);
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(3, -1);
@@ -545,7 +545,7 @@ TEST(InvertedIndexSearch,
     DerivedSearchParameters params;
     params.set_id_selector(&selector);
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(3, -1);
@@ -573,7 +573,7 @@ TEST(InvertedIndexSearch, search_with_id_selector_matching_nothing) {
     SearchParameters params;
     params.set_id_selector(&selector);
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(2, -1);
@@ -601,7 +601,7 @@ TEST(InvertedIndexSearch, search_with_non_enumerable_id_selector) {
     SearchParameters params;
     params.set_id_selector(&selector);
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(3, -1);
@@ -632,7 +632,7 @@ TEST(InvertedIndexSearch, search_with_id_selector_multi_term) {
     SearchParameters params;
     params.set_id_selector(&selector);
 
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 0.8F};
     std::vector<idx_t> labels(3, -1);
@@ -673,7 +673,7 @@ TEST(InvertedIndexSearch, search_with_id_selector_multi_window) {
     SearchParameters params;
     params.set_id_selector(&selector);
 
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
 
@@ -707,7 +707,7 @@ TEST(InvertedIndexSearch, search_ignores_query_terms_beyond_the_dimension) {
     index.build();
 
     // Term 0 exists; term 9 is past the dimension entirely.
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 9};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<idx_t> labels(2, -1);
@@ -768,7 +768,7 @@ std::unique_ptr<InvertedIndex> built_index() {
 pair_of_score_id_vector_t search_one(Index* index,
                                      const std::vector<term_t>& terms,
                                      const std::vector<float>& weights, int k) {
-    std::vector<idx_t> indptr = {0, static_cast<idx_t>(terms.size())};
+    std::vector<offset_t> indptr = {0, static_cast<offset_t>(terms.size())};
     std::vector<float> distances(k, -1.0F);
     std::vector<idx_t> labels(k, detail::INVALID_IDX);
     index->search(1, indptr.data(), terms.data(), weights.data(), k,

@@ -245,7 +245,7 @@ void evaluate_window_candidates(std::vector<DirectTermScorer>& scorers,
 
 InvertedIndex::InvertedIndex(int dim) : MmapIndex(dim) {}
 
-void InvertedIndex::add(idx_t n, const idx_t* indptr, const term_t* indices,
+void InvertedIndex::add(idx_t n, const offset_t* indptr, const term_t* indices,
                         const float* values) {
     throw_if_not_positive(n);
     throw_if_any_null(indptr, indices, values);
@@ -294,8 +294,8 @@ void InvertedIndex::build() {
     max_term_scores_ = Buf<float>::own(std::move(max_term_scores));
 }
 
-auto InvertedIndex::search(idx_t n, const idx_t* indptr, const term_t* indices,
-                           const float* values, int k,
+auto InvertedIndex::search(idx_t n, const offset_t* indptr,
+                           const term_t* indices, const float* values, int k,
                            SearchParameters* search_parameters)
     -> pair_of_score_id_vectors_t {
     if (inverted_lists_ == nullptr || n == 0) {
@@ -323,7 +323,7 @@ auto InvertedIndex::search(idx_t n, const idx_t* indptr, const term_t* indices,
 
 #pragma omp parallel for
     for (idx_t query_idx = 0; query_idx < n; ++query_idx) {
-        const idx_t start = query_indptr[query_idx];
+        const offset_t start = query_indptr[query_idx];
         const size_t len = query_indptr[query_idx + 1] - start;
 
         auto [distances, labels] = single_query(

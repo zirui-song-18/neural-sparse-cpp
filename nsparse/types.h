@@ -16,6 +16,8 @@
 namespace nsparse {
 
 using idx_t = int32_t;
+using offset_t = int64_t;  // CSR nnz offsets (indptr); distinct from idx_t so
+                           // doc-ids / term-ids / counts stay 32-bit.
 using term_t = uint16_t;
 using weight_t = float;
 

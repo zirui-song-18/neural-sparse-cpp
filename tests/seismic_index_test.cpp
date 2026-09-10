@@ -50,7 +50,7 @@ public:
 
     // Helper to add docs from map format: {{term: value, ...}, ...}
     void add_docs(const std::vector<std::map<int, float>>& docs) {
-        std::vector<idx_t> indptr;
+        std::vector<offset_t> indptr;
         std::vector<term_t> indices;
         std::vector<float> values;
 
@@ -60,7 +60,7 @@ public:
                 indices.push_back(static_cast<term_t>(term));
                 values.push_back(value);
             }
-            indptr.push_back(static_cast<idx_t>(indices.size()));
+            indptr.push_back(static_cast<offset_t>(indices.size()));
         }
 
         SeismicIndex::add(static_cast<idx_t>(docs.size()), indptr.data(),
@@ -233,7 +233,7 @@ TEST(SeismicIndexSearch, search_returns_empty_when_no_vectors) {
     SeismicIndex index(5);
     Index* idx = &index;
 
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 0.5F};
     std::vector<idx_t> labels(5, -1);
@@ -254,7 +254,7 @@ TEST(SeismicIndexSearch, search_finds_matching_doc) {
     index.add_docs({{{0, 1.0F}, {1, 0.5F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(1, -1);
@@ -275,7 +275,7 @@ TEST(SeismicIndexSearch, search_multiple_queries) {
     index.add_docs({{{0, 1.0F}, {1, 0.5F}}, {{2, 0.8F}, {3, 0.6F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1, 2};
+    std::vector<offset_t> query_indptr = {0, 1, 2};
     std::vector<term_t> query_indices = {0, 2};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<idx_t> labels(2, -1);
@@ -297,7 +297,7 @@ TEST(SeismicIndexSearch, search_respects_k_limit) {
     index.add_docs({{{0, 1.0F}}, {{0, 0.9F}}, {{0, 0.8F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(2, -1);
@@ -322,7 +322,7 @@ TEST(SeismicIndexSearch, search_with_no_matching_term) {
 
     // Query with term {3} which doesn't exist in any doc
     // Term 3's inverted list is empty, so no docs should be visited
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {3};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(1, -1);
@@ -347,7 +347,7 @@ TEST(SeismicIndexSearch, search_returns_results_sorted_by_score) {
     index.add_docs({{{0, 0.3F}}, {{0, 1.0F}}, {{0, 0.5F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(3, -1);
@@ -371,7 +371,7 @@ TEST(SeismicIndexSearch, search_with_default_parameters) {
     index.add_docs({{{0, 1.0F}, {1, 0.5F}}});
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 0.5F};
     std::vector<idx_t> labels(1, -1);
@@ -407,7 +407,7 @@ TEST(SeismicIndexSearch, lambda_prunes_posting_list) {
     EXPECT_EQ(total_docs, 2);
 
     // Search should only find doc0 and doc1, not doc2 or doc3
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(4, -1);
@@ -436,7 +436,7 @@ TEST(SeismicIndexSearch, cut_prunes_query_tokens) {
 
     // Query has 3 terms: term0 (0.1), term1 (0.5), term2 (0.9)
     // With cut=1, only term2 (highest weight 0.9) is used
-    std::vector<idx_t> query_indptr = {0, 3};
+    std::vector<offset_t> query_indptr = {0, 3};
     std::vector<term_t> query_indices = {0, 1, 2};
     std::vector<float> query_values = {0.1F, 0.5F, 0.9F};
     std::vector<idx_t> labels(1, -1);
@@ -473,7 +473,7 @@ TEST(SeismicIndexSearch, large_heap_factor_includes_all_clusters) {
     index.build();
 
     // Query with terms 0, 1, 2 (weights 1.0, 0.8, 0.5)
-    std::vector<idx_t> query_indptr = {0, 3};
+    std::vector<offset_t> query_indptr = {0, 3};
     std::vector<term_t> query_indices = {0, 1, 2};
     std::vector<float> query_values = {1.0F, 0.8F, 0.5F};
     std::vector<idx_t> labels(6, -1);
@@ -523,7 +523,7 @@ TEST(SeismicIndexSearch, small_heap_factor_prunes_clusters) {
     index.build();
 
     // Query with terms 0, 1, 2 (weights 1.0, 0.8, 0.5)
-    std::vector<idx_t> query_indptr = {0, 3};
+    std::vector<offset_t> query_indptr = {0, 3};
     std::vector<term_t> query_indices = {0, 1, 2};
     std::vector<float> query_values = {1.0F, 0.8F, 0.5F};
 
@@ -594,7 +594,7 @@ TEST(SeismicIndexSearch, heap_factor_controls_result_count_large_dataset) {
     index.build();
 
     // Query with 4 terms (similar to OpenSearch test)
-    std::vector<idx_t> query_indptr = {0, 4};
+    std::vector<offset_t> query_indptr = {0, 4};
     std::vector<term_t> query_indices = {1000, 2000, 3000, 4000};
     std::vector<float> query_values = {0.12F, 0.64F, 0.87F, 0.53F};
 
@@ -739,7 +739,7 @@ TEST(SeismicIndexIO, write_and_read_search_produces_same_results) {
     original.build();
 
     // Search on original
-    std::vector<idx_t> query_indptr = {0, 2};
+    std::vector<offset_t> query_indptr = {0, 2};
     std::vector<term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 0.8F};
     std::vector<idx_t> labels_original(3, -1);
@@ -792,7 +792,7 @@ TEST(SeismicIndexIO, write_and_read_multiple_terms) {
     EXPECT_EQ(loaded->get_vectors()->num_vectors(), 4);
 
     // Verify search works on loaded index
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(1, -1);
@@ -825,7 +825,7 @@ TEST(SeismicIndexSearch, search_exact_match_with_small_selector) {
     SeismicSearchParameters params(5, 1.0F);
     params.set_id_selector(&selector);
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(2, -1);
@@ -856,7 +856,7 @@ TEST(SeismicIndexSearch, search_with_id_selector_filters_results) {
     SeismicSearchParameters params(5, 1.0F);
     params.set_id_selector(&selector);
 
-    std::vector<idx_t> query_indptr = {0, 1};
+    std::vector<offset_t> query_indptr = {0, 1};
     std::vector<term_t> query_indices = {0};
     std::vector<float> query_values = {1.0F};
     std::vector<idx_t> labels(3, -1);
@@ -911,7 +911,7 @@ std::unique_ptr<TestableSeismicIndex> built_index() {
 }
 
 std::vector<idx_t> search_top(Index* index, term_t term, int k) {
-    std::vector<idx_t> indptr = {0, 1};
+    std::vector<offset_t> indptr = {0, 1};
     std::vector<term_t> indices = {term};
     std::vector<float> values = {1.0F};
     std::vector<idx_t> labels(k, detail::INVALID_IDX);
@@ -962,7 +962,7 @@ void expect_both_reads_rejected(char* path, const char* fragment) {
 // Raw-array CSR corpus. A reproducible random corpus with distinct, ascending
 // terms per row (CSR convention) and values in (0, 1].
 struct RawCsr {
-    std::vector<idx_t> indptr;
+    std::vector<offset_t> indptr;
     std::vector<term_t> indices;
     std::vector<float> values;
     idx_t n = 0;
@@ -986,7 +986,7 @@ RawCsr make_raw_corpus(idx_t rows, int dim, unsigned seed) {
             c.indices.push_back(static_cast<term_t>(t));
             c.values.push_back(val_dist(rng));
         }
-        c.indptr.push_back(static_cast<idx_t>(c.indices.size()));
+        c.indptr.push_back(static_cast<offset_t>(c.indices.size()));
     }
     return c;
 }
@@ -1047,7 +1047,7 @@ TEST(SeismicIndexMmapIO, mapped_read_borrows_from_the_file) {
         reinterpret_cast<const uint8_t*>(vectors->indices_data());
     EXPECT_EQ(indices_bytes - indptr_bytes,
               static_cast<ptrdiff_t>((vectors->num_vectors() + 1) *
-                                     sizeof(idx_t)));
+                                     sizeof(offset_t)));
 }
 
 // Building from a native CSR borrowed via mmap (read_csr(kMmap)) must match
@@ -1175,7 +1175,7 @@ std::pair<std::vector<float>, std::vector<idx_t>> build_and_search(int seed) {
     index.add_docs(seed_test_docs(kDocs, kDim));
     index.build();
 
-    std::vector<idx_t> query_indptr = {0, 3};
+    std::vector<offset_t> query_indptr = {0, 3};
     std::vector<term_t> query_indices = {1, 17, 33};
     std::vector<float> query_values = {1.0F, 0.7F, 0.4F};
     std::vector<float> distances(kTopK);

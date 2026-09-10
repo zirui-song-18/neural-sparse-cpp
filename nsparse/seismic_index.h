@@ -48,7 +48,7 @@ public:
 
     void build() override;
 
-    void add(idx_t n, const idx_t* indptr, const term_t* indices,
+    void add(idx_t n, const offset_t* indptr, const term_t* indices,
              const float* values) override;
 
     static SeismicIndex* mmap_index(const IndexHeader& header,
@@ -66,7 +66,7 @@ private:
     void read_index(IOReader* io_reader, const IndexHeader& header,
                     int io_flags = 0) override;
 
-    auto search(idx_t n, const idx_t* indptr, const term_t* indices,
+    auto search(idx_t n, const offset_t* indptr, const term_t* indices,
                 const float* values, int k,
                 SearchParameters* search_parameters = nullptr)
         -> pair_of_score_id_vectors_t override;

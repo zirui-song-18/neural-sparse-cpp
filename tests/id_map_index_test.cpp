@@ -62,7 +62,7 @@ TEST_F(IDMapIndexTest, num_vectors_empty) {
 }
 
 TEST_F(IDMapIndexTest, add_with_ids) {
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -74,7 +74,7 @@ TEST_F(IDMapIndexTest, add_with_ids) {
 }
 
 TEST_F(IDMapIndexTest, add_with_ids_multiple_batches) {
-    std::vector<nsparse::idx_t> indptr1 = {0, 2};
+    std::vector<nsparse::offset_t> indptr1 = {0, 2};
     std::vector<nsparse::term_t> indices1 = {0, 1};
     std::vector<float> values1 = {1.0F, 0.5F};
     std::vector<nsparse::idx_t> ids1 = {100};
@@ -83,7 +83,7 @@ TEST_F(IDMapIndexTest, add_with_ids_multiple_batches) {
                          ids1.data());
     EXPECT_EQ(idmap_->num_vectors(), 1);
 
-    std::vector<nsparse::idx_t> indptr2 = {0, 2};
+    std::vector<nsparse::offset_t> indptr2 = {0, 2};
     std::vector<nsparse::term_t> indices2 = {2, 3};
     std::vector<float> values2 = {0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids2 = {200};
@@ -95,7 +95,7 @@ TEST_F(IDMapIndexTest, add_with_ids_multiple_batches) {
 
 TEST_F(IDMapIndexTest, search_returns_external_ids) {
     // Add vectors with custom external IDs
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4, 6};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4, 6};
     std::vector<nsparse::term_t> indices = {0, 1, 0, 1, 0, 1};
     std::vector<float> values = {1.0F, 0.5F, 0.3F, 0.2F, 0.8F, 0.4F};
     std::vector<nsparse::idx_t> ids = {1000, 2000, 3000};
@@ -105,7 +105,7 @@ TEST_F(IDMapIndexTest, search_returns_external_ids) {
     idmap_->build();
 
     // Query
-    std::vector<nsparse::idx_t> query_indptr = {0, 2};
+    std::vector<nsparse::offset_t> query_indptr = {0, 2};
     std::vector<nsparse::term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<nsparse::idx_t> labels(3, -1);
@@ -124,7 +124,7 @@ TEST_F(IDMapIndexTest, search_returns_external_ids) {
 
 TEST_F(IDMapIndexTest, search_preserves_negative_ids) {
     // Add one vector
-    std::vector<nsparse::idx_t> indptr = {0, 2};
+    std::vector<nsparse::offset_t> indptr = {0, 2};
     std::vector<nsparse::term_t> indices = {0, 1};
     std::vector<float> values = {1.0F, 0.5F};
     std::vector<nsparse::idx_t> ids = {1000};
@@ -134,7 +134,7 @@ TEST_F(IDMapIndexTest, search_preserves_negative_ids) {
     idmap_->build();
 
     // Query for k=3 but only 1 result exists
-    std::vector<nsparse::idx_t> query_indptr = {0, 2};
+    std::vector<nsparse::offset_t> query_indptr = {0, 2};
     std::vector<nsparse::term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<nsparse::idx_t> labels(3, -1);
@@ -151,7 +151,7 @@ TEST_F(IDMapIndexTest, search_preserves_negative_ids) {
 }
 
 TEST_F(IDMapIndexTest, get_vectors_after_add) {
-    std::vector<nsparse::idx_t> indptr = {0, 2};
+    std::vector<nsparse::offset_t> indptr = {0, 2};
     std::vector<nsparse::term_t> indices = {0, 1};
     std::vector<float> values = {1.0F, 0.5F};
     std::vector<nsparse::idx_t> ids = {100};
@@ -170,7 +170,7 @@ TEST(IDMapIndex, default_constructor) {
 }
 
 TEST_F(IDMapIndexTest, search_with_null_search_parameters) {
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 0, 1};
     std::vector<float> values = {1.0F, 0.5F, 0.3F, 0.2F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -179,7 +179,7 @@ TEST_F(IDMapIndexTest, search_with_null_search_parameters) {
                          ids.data());
     idmap_->build();
 
-    std::vector<nsparse::idx_t> query_indptr = {0, 2};
+    std::vector<nsparse::offset_t> query_indptr = {0, 2};
     std::vector<nsparse::term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<nsparse::idx_t> labels(2, -1);
@@ -196,7 +196,7 @@ TEST_F(IDMapIndexTest, search_with_null_search_parameters) {
 }
 
 TEST_F(IDMapIndexTest, search_with_search_parameters_no_id_selector) {
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 0, 1};
     std::vector<float> values = {1.0F, 0.5F, 0.3F, 0.2F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -205,7 +205,7 @@ TEST_F(IDMapIndexTest, search_with_search_parameters_no_id_selector) {
                          ids.data());
     idmap_->build();
 
-    std::vector<nsparse::idx_t> query_indptr = {0, 2};
+    std::vector<nsparse::offset_t> query_indptr = {0, 2};
     std::vector<nsparse::term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<nsparse::idx_t> labels(2, -1);
@@ -224,7 +224,7 @@ TEST_F(IDMapIndexTest, search_with_search_parameters_no_id_selector) {
 }
 
 TEST_F(IDMapIndexTest, search_with_id_selector_filters_by_external_id) {
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4, 6};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4, 6};
     std::vector<nsparse::term_t> indices = {0, 1, 0, 1, 0, 1};
     std::vector<float> values = {1.0F, 0.5F, 0.3F, 0.2F, 0.8F, 0.4F};
     std::vector<nsparse::idx_t> ids = {100, 200, 300};
@@ -233,7 +233,7 @@ TEST_F(IDMapIndexTest, search_with_id_selector_filters_by_external_id) {
                          ids.data());
     idmap_->build();
 
-    std::vector<nsparse::idx_t> query_indptr = {0, 2};
+    std::vector<nsparse::offset_t> query_indptr = {0, 2};
     std::vector<nsparse::term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<nsparse::idx_t> labels(3, -1);
@@ -257,7 +257,7 @@ TEST_F(IDMapIndexTest, search_with_id_selector_filters_by_external_id) {
 }
 
 TEST_F(IDMapIndexTest, search_with_id_selector_excludes_all) {
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 0, 1};
     std::vector<float> values = {1.0F, 0.5F, 0.3F, 0.2F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -266,7 +266,7 @@ TEST_F(IDMapIndexTest, search_with_id_selector_excludes_all) {
                          ids.data());
     idmap_->build();
 
-    std::vector<nsparse::idx_t> query_indptr = {0, 2};
+    std::vector<nsparse::offset_t> query_indptr = {0, 2};
     std::vector<nsparse::term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<nsparse::idx_t> labels(2, -1);
@@ -299,7 +299,7 @@ public:
     ~DestructionTrackingIndex() override { *destroyed_ = true; }
 
     std::array<char, 4> id() const override { return {'T', 'E', 'S', 'T'}; }
-    void add(nsparse::idx_t, const nsparse::idx_t*, const nsparse::term_t*,
+    void add(nsparse::idx_t, const nsparse::offset_t*, const nsparse::term_t*,
              const float*) override {}
 
 private:
@@ -325,7 +325,7 @@ TEST(IDMapIndexOwnership, DeletesDelegateOnDestruction) {
 TEST(IDMapIndexOwnership, DeletesDelegateAcquiredViaReadIndex) {
     // Build and serialize an idmap-wrapped inverted index.
     auto* original = new nsparse::IDMapIndex(new nsparse::InvertedIndex(16));
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -347,7 +347,7 @@ TEST(IDMapIndexOwnership, DeletesDelegateAcquiredViaReadIndex) {
 }
 
 TEST_F(IDMapIndexTest, search_with_not_id_selector) {
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4, 6};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4, 6};
     std::vector<nsparse::term_t> indices = {0, 1, 0, 1, 0, 1};
     std::vector<float> values = {1.0F, 0.5F, 0.3F, 0.2F, 0.8F, 0.4F};
     std::vector<nsparse::idx_t> ids = {100, 200, 300};
@@ -356,7 +356,7 @@ TEST_F(IDMapIndexTest, search_with_not_id_selector) {
                          ids.data());
     idmap_->build();
 
-    std::vector<nsparse::idx_t> query_indptr = {0, 2};
+    std::vector<nsparse::offset_t> query_indptr = {0, 2};
     std::vector<nsparse::term_t> query_indices = {0, 1};
     std::vector<float> query_values = {1.0F, 1.0F};
     std::vector<nsparse::idx_t> labels(3, -1);
@@ -384,13 +384,14 @@ TEST_F(IDMapIndexTest, search_with_not_id_selector) {
 namespace {
 
 using nsparse::idx_t;
+using nsparse::offset_t;
 using nsparse::term_t;
 
 // A CSR corpus exposing the fields csr_test::write_interchange_csr needs
 // (.n / .indptr / .indices / .values).
 struct Corpus {
     idx_t n = 0;
-    std::vector<idx_t> indptr;
+    std::vector<offset_t> indptr;
     std::vector<term_t> indices;
     std::vector<float> values;
 };
@@ -415,7 +416,7 @@ Corpus make_corpus(idx_t rows, int dim, unsigned seed) {
             c.indices.push_back(static_cast<term_t>(t));
             c.values.push_back(val_dist(rng));
         }
-        c.indptr.push_back(static_cast<idx_t>(c.indices.size()));
+        c.indptr.push_back(static_cast<offset_t>(c.indices.size()));
     }
     return c;
 }

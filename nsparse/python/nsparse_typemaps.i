@@ -25,24 +25,44 @@
     }
 }
 
-%typemap(in)(const nsparse::idx_t* indptr)(Py_buffer view) {
+%typemap(in)(const nsparse::offset_t* indptr)(Py_buffer view = {},
+                                              nsparse::offset_t* tmp = 0) {
     if (PyObject_GetBuffer($input, &view, PyBUF_FORMAT | PyBUF_C_CONTIGUOUS) ==
         -1) {
         SWIG_fail;
     }
-    if (strcmp(view.format, "i") != 0) {
+    // Accept a 32- or 64-bit signed-int CSR indptr and widen it into the
+    // offset_t (int64) the C++ API takes; the freearg frees this copy. Require
+    // an explicit int format ('i'/'l'/'q'): a null or float format is rejected
+    // rather than reinterpreted by width.
+    const char* fmt = view.format;
+    const bool is_i32 = fmt != nullptr && strcmp(fmt, "i") == 0;
+    const bool is_i64 = fmt != nullptr &&
+                        (strcmp(fmt, "l") == 0 || strcmp(fmt, "q") == 0);
+    if (!is_i32 && !is_i64) {
         PyBuffer_Release(&view);
-        PyErr_SetString(PyExc_TypeError, "Expected int32 array for indptr");
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected a 32- or 64-bit int array for indptr");
         SWIG_fail;
     }
-    $1 = (nsparse::idx_t*)view.buf;
+    const size_t count = view.len / view.itemsize;
+    tmp = (nsparse::offset_t*)malloc(count * sizeof(nsparse::offset_t));
+    if (is_i64) {
+        const int64_t* src = (const int64_t*)view.buf;
+        for (size_t i = 0; i < count; ++i) tmp[i] = src[i];
+    } else {
+        const int32_t* src = (const int32_t*)view.buf;
+        for (size_t i = 0; i < count; ++i) tmp[i] = src[i];
+    }
+    $1 = tmp;
 }
 
-%typemap(freearg)(const nsparse::idx_t* indptr) {
+%typemap(freearg)(const nsparse::offset_t* indptr) {
+    free(tmp$argnum);
     PyBuffer_Release(&view$argnum);
 }
 
-%typemap(in)(const nsparse::idx_t* ids)(Py_buffer view) {
+%typemap(in)(const nsparse::idx_t* ids)(Py_buffer view = {}) {
     if (PyObject_GetBuffer($input, &view, PyBUF_FORMAT | PyBUF_C_CONTIGUOUS) ==
         -1) {
         SWIG_fail;
@@ -59,7 +79,7 @@
     PyBuffer_Release(&view$argnum);
 }
 
-%typemap(in)(const nsparse::term_t* indices)(Py_buffer view) {
+%typemap(in)(const nsparse::term_t* indices)(Py_buffer view = {}) {
     if (PyObject_GetBuffer($input, &view, PyBUF_FORMAT | PyBUF_C_CONTIGUOUS) ==
         -1) {
         SWIG_fail;
@@ -76,7 +96,7 @@
     PyBuffer_Release(&view$argnum);
 }
 
-%typemap(in)(const float* values)(Py_buffer view) {
+%typemap(in)(const float* values)(Py_buffer view = {}) {
     if (PyObject_GetBuffer($input, &view, PyBUF_FORMAT | PyBUF_C_CONTIGUOUS) ==
         -1) {
         SWIG_fail;
@@ -93,7 +113,7 @@
 
 // Multi-argument typemap for the add method signature to ensure proper
 // validation
-%typemap(check)(nsparse::idx_t n, const nsparse::idx_t* indptr,
+%typemap(check)(nsparse::idx_t n, const nsparse::offset_t* indptr,
                 const nsparse::term_t* indices, const float* values) {
     // Validation is handled in C++ code, this just ensures the signature is
     // recognized
@@ -118,7 +138,7 @@
 
 // Use a multi-argument typemap to capture n, k, distances, and labels together
 // For member functions, self is arg 1, so distances is arg 7, labels is arg 8
-%typemap(check)(nsparse::idx_t n, const nsparse::idx_t* indptr,
+%typemap(check)(nsparse::idx_t n, const nsparse::offset_t* indptr,
                  const nsparse::term_t* indices, const float* values, int k,
                  float* distances, nsparse::idx_t* labels) {
     // Store n and k in the local variables from the labels typemap
@@ -235,7 +255,7 @@
 
 // Multi-argument typemap for SeismicIndex::search with cut and heap_factor (8
 // args, labels is arg 9 including self)
-%typemap(check)(nsparse::idx_t n, const nsparse::idx_t* indptr,
+%typemap(check)(nsparse::idx_t n, const nsparse::offset_t* indptr,
                  const nsparse::term_t* indices, const float* values, int k,
                  int cut, float heap_factor, nsparse::idx_t* labels) {
     n_store9 = $1;  // n
@@ -251,7 +271,7 @@
 // Multi-argument typemap for search with distances, labels, followed by
 // SearchParameters For member functions, self is arg 1, so distances is arg 7,
 // labels is arg 8, search_parameters is arg 9
-%typemap(check)(nsparse::idx_t n, const nsparse::idx_t* indptr,
+%typemap(check)(nsparse::idx_t n, const nsparse::offset_t* indptr,
                  const nsparse::term_t* indices, const float* values, int k,
                  float* distances, nsparse::idx_t* labels,
                  nsparse::SearchParameters* search_parameters) {

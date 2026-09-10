@@ -115,7 +115,7 @@ RandomSparseData generate_random_data(int dim, int n_docs, int n_queries,
 void add_docs_from_data(
     InvertedIndex& index,
     const std::vector<std::vector<std::pair<term_t, float>>>& docs) {
-    std::vector<idx_t> indptr;
+    std::vector<offset_t> indptr;
     std::vector<term_t> indices;
     std::vector<float> values;
 
@@ -125,7 +125,7 @@ void add_docs_from_data(
             indices.push_back(term);
             values.push_back(value);
         }
-        indptr.push_back(static_cast<idx_t>(indices.size()));
+        indptr.push_back(static_cast<offset_t>(indices.size()));
     }
 
     index.add(static_cast<idx_t>(docs.size()), indptr.data(), indices.data(),
@@ -169,8 +169,8 @@ TEST_P(InvertedIndexRecallTest, recall_should_be_perfect) {
         if (query.empty()) continue;
 
         // Build query CSR.
-        std::vector<idx_t> q_indptr = {0,
-                                        static_cast<idx_t>(query.size())};
+        std::vector<offset_t> q_indptr = {0,
+                                          static_cast<offset_t>(query.size())};
         std::vector<term_t> q_indices;
         std::vector<float> q_values;
         for (auto& [t, v] : query) {

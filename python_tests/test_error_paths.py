@@ -11,27 +11,17 @@ C++ exceptions are translated, so these are ordinary in-process assertions:
 std::invalid_argument arrives as ValueError, everything else derived from
 std::exception as RuntimeError.
 
-The dtype cases at the bottom still need a subprocess. A wrong dtype for indptr
-or indices does not raise -- it segfaults. The typemaps do validate the buffer
-format, but they call SWIG_fail after releasing their own Py_buffer, and the
-fail: label then runs the freearg typemaps for the remaining arguments, whose
-Py_buffer views were never initialised. So PyBuffer_Release() is handed
-uninitialised stack memory. `values` is the last argument, so nothing follows it
-and it fails cleanly -- which is exactly why only the other two crash. Fixable
-by zero-initialising the views or guarding freearg on view.obj.
+A wrong dtype on any buffer argument raises TypeError. The buffer typemaps
+zero-initialise their Py_buffer view, so when one argument fails validation and
+runs SWIG_fail, the freearg typemaps for the remaining arguments release a
+zeroed view (a no-op) rather than uninitialised stack memory.
 """
-
-from pathlib import Path
 
 import numpy as np
 import pytest
 
 import nsparse
-from conftest import run_isolated
 from support import make_corpus, make_index, search
-
-SIGSEGV = -11
-PROBE = str(Path(__file__).parent / "_abort_probe.py")
 
 DIM = 512
 
@@ -101,15 +91,18 @@ def test_wrong_values_dtype_raises(small_corpus):
         )
 
 
-@pytest.mark.parametrize("case", ["bad_indptr_dtype", "bad_indices_dtype"])
-def test_wrong_dtype_segfaults(case):
-    """Pins the crash described in the module docstring.
-
-    Rewrite as pytest.raises(TypeError) once the typemaps zero-initialise their
-    Py_buffer views -- see test_wrong_values_dtype_raises for the target shape.
-    """
-    result = run_isolated([PROBE, case])
-    assert "COMPLETED-WITHOUT-ERROR" not in result.stdout
-    assert result.returncode == SIGSEGV, (
-        f"{case}: expected SIGSEGV, got {result.returncode}\n{result.stderr}"
-    )
+@pytest.mark.parametrize(
+    "mutate,match",
+    [
+        (lambda c: (c.indptr.astype(np.float64), c.indices, c.values), "indptr"),
+        (lambda c: (c.indptr, c.indices.astype(np.int32), c.values), "indices"),
+    ],
+    ids=["bad_indptr_dtype", "bad_indices_dtype"],
+)
+def test_wrong_dtype_on_non_final_buffer_raises(small_corpus, mutate, match):
+    """A wrong dtype on indptr or indices raises TypeError, not a segfault: the
+    zero-initialised Py_buffer views make every argument fail gracefully."""
+    index = nsparse.index_factory(DIM, "inverted")
+    indptr, indices, values = mutate(small_corpus)
+    with pytest.raises(TypeError, match=match):
+        index.add(small_corpus.n, indptr, indices, values)

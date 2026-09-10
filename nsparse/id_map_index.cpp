@@ -27,14 +27,14 @@
 namespace nsparse {
 IDMapIndex::IDMapIndex(Index* index) : delegate_(index) {}
 
-void IDMapIndex::add(idx_t n, const idx_t* indptr, const term_t* indices,
+void IDMapIndex::add(idx_t n, const offset_t* indptr, const term_t* indices,
                      const float* values) {
     delegate_->add(n, indptr, indices, values);
 }
 
 void IDMapIndex::build() { delegate_->build(); }
 
-void IDMapIndex::search(idx_t n, const idx_t* indptr, const term_t* indices,
+void IDMapIndex::search(idx_t n, const offset_t* indptr, const term_t* indices,
                         const float* values, int k, float* distances,
                         idx_t* labels, SearchParameters* search_parameters) {
     std::unique_ptr<IDSelector> id_selector_idmap = nullptr;
@@ -75,7 +75,7 @@ size_t IDMapIndex::num_vectors() const {
     return delegate_ == nullptr ? 0 : delegate_->num_vectors();
 }
 
-void IDMapIndex::add_with_ids(idx_t n, const idx_t* indptr,
+void IDMapIndex::add_with_ids(idx_t n, const offset_t* indptr,
                               const term_t* indices, const float* values,
                               const idx_t* ids) {
     size_t old_size = delegate_->num_vectors();

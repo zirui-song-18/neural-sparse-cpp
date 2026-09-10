@@ -233,7 +233,7 @@ std::unique_ptr<ArrayInvertedLists> ArrayInvertedLists::build_inverted_lists(
     // every entry, and leave the geometric growth's slack behind.
     std::vector<size_t> counts(n_term, 0);
     for (size_t i = 0; i < n_docs; ++i) {
-        for (idx_t j = indptr_data[i]; j < indptr_data[i + 1]; ++j) {
+        for (offset_t j = indptr_data[i]; j < indptr_data[i + 1]; ++j) {
             const term_t term_id = indices_data[j];
             if (term_id >= n_term) {
                 throw std::invalid_argument("term_id out of range");
@@ -251,7 +251,7 @@ std::unique_ptr<ArrayInvertedLists> ArrayInvertedLists::build_inverted_lists(
     // Documents in ascending order, so every posting list comes out sorted by
     // doc id -- which the search path relies on.
     for (size_t i = 0; i < n_docs; ++i) {
-        for (idx_t j = indptr_data[i]; j < indptr_data[i + 1]; ++j) {
+        for (offset_t j = indptr_data[i]; j < indptr_data[i + 1]; ++j) {
             const term_t term_id = indices_data[j];
             doc_ids[term_id].push_back(static_cast<idx_t>(i));
             const uint8_t* code = values_data + (j * element_size);

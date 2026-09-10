@@ -32,11 +32,11 @@ public:
     explicit Index(int dim = 0);
     virtual ~Index() = default;
     virtual std::array<char, 4> id() const = 0;
-    virtual void add(idx_t n, const idx_t* indptr, const term_t* indices,
+    virtual void add(idx_t n, const offset_t* indptr, const term_t* indices,
                      const float* values) = 0;
     virtual void build();
     virtual void search(
-        idx_t n, const idx_t* indptr, const term_t* indices,
+        idx_t n, const offset_t* indptr, const term_t* indices,
         const float* values, int k, float* distances, idx_t* labels,
         SearchParameters* search_parameters = nullptr);  // Pre-allocated: n * k
 
@@ -50,7 +50,7 @@ public:
         const auto* vectors = get_vectors();
         return vectors == nullptr ? 0 : vectors->num_vectors();
     }
-    virtual void add_with_ids(idx_t n, const idx_t* indptr,
+    virtual void add_with_ids(idx_t n, const offset_t* indptr,
                               const term_t* indices, const float* values,
                               const idx_t* ids);
 
@@ -59,7 +59,7 @@ public:
     virtual void read_csr(const char* file_path, Residency residency = Residency::kInMemory);
 
 protected:
-    virtual auto search(idx_t n, const idx_t* indptr, const term_t* indices,
+    virtual auto search(idx_t n, const offset_t* indptr, const term_t* indices,
                         const float* values, int k,
                         SearchParameters* search_parameters = nullptr)
         -> pair_of_score_id_vectors_t;

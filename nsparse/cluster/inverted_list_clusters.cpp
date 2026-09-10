@@ -93,9 +93,9 @@ SparseVectors summarize_with_cpu_(const SparseVectors* vectors,
         auto doc_ids = std::span<const idx_t>(
             group_of_doc_ids.data() + offsets[i], offsets[i + 1] - offsets[i]);
         for (const auto& doc_id : doc_ids) {
-            int start = indptr_data[doc_id];
-            int end = indptr_data[doc_id + 1];
-            for (size_t j = start; j < end; ++j) {
+            offset_t start = indptr_data[doc_id];
+            offset_t end = indptr_data[doc_id + 1];
+            for (offset_t j = start; j < end; ++j) {
                 const term_t term = indices_data[j];
                 // j is element index, need byte offset for T access
                 const T v =
@@ -280,9 +280,9 @@ void InvertedListClusters::build_transpose(const SparseVectors& summaries) {
     std::vector<uint8_t> csc_value(nnz * esz);
     std::vector<idx_t> cursor(term_ptr.begin(), term_ptr.end() - 1);
     for (size_t cluster = 0; cluster < n_clusters_; ++cluster) {
-        const idx_t start = indptr[cluster];
-        const idx_t end = indptr[cluster + 1];
-        for (idx_t j = start; j < end; ++j) {
+        const offset_t start = indptr[cluster];
+        const offset_t end = indptr[cluster + 1];
+        for (offset_t j = start; j < end; ++j) {
             const size_t col = term_column(indices[j]);
             const idx_t pos = cursor[col]++;
             csc_cluster[pos] = static_cast<cluster_id_t>(cluster);

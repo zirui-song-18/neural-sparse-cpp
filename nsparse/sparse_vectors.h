@@ -28,7 +28,7 @@ struct SparseVectorsConfig {
 };
 
 struct SparseVectorsData {
-    const idx_t* indptr_data;
+    const offset_t* indptr_data;
     const term_t* indices_data;
     const float* values_data;
 };
@@ -46,11 +46,11 @@ public:
     SparseVectors(SparseVectors&& other) noexcept = default;
     SparseVectors& operator=(SparseVectors&& other) noexcept = default;
 
-    void add_vectors(const std::vector<idx_t>& indptr,
+    void add_vectors(const std::vector<offset_t>& indptr,
                      const std::vector<term_t>& indices,
                      const std::vector<uint8_t>& weights);
 
-    void add_vectors(const idx_t* indptr, size_t indptr_size,
+    void add_vectors(const offset_t* indptr, size_t indptr_size,
                      const term_t* indices, size_t indices_size,
                      const uint8_t* weights, size_t weights_size);
 
@@ -68,7 +68,7 @@ public:
     // file fails here rather than mid-search, and `values` must be aligned for
     // `element_size` because it is reinterpreted in place.
     static SparseVectors map_vectors(SparseVectorsConfig config,
-                                     const idx_t* indptr, size_t indptr_size,
+                                     const offset_t* indptr, size_t indptr_size,
                                      const term_t* indices,
                                      size_t indices_size,
                                      const uint8_t* values,
@@ -80,7 +80,7 @@ public:
 
     std::vector<float> get_dense_vector_float(idx_t vector_idx) const;
     std::vector<uint8_t> get_dense_vector(idx_t vector_idx) const;
-    const idx_t* indptr_data() const { return indptr_.data(); }
+    const offset_t* indptr_data() const { return indptr_.data(); }
     const term_t* indices_data() const { return indices_.data(); }
     const float* values_data_float() const {
         return reinterpret_cast<const float*>(values_.data());
@@ -104,7 +104,7 @@ public:
     void mmap_deserialize(MmapCursor* cursor) override;
 
 private:
-    Buf<idx_t> indptr_;
+    Buf<offset_t> indptr_;
     Buf<term_t> indices_;
     Buf<uint8_t> values_;
     SparseVectorsConfig config_;

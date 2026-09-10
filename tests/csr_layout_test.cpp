@@ -24,6 +24,7 @@
 namespace {
 
 using nsparse::idx_t;
+using nsparse::offset_t;
 using nsparse::term_t;
 namespace layout = nsparse::csr_layout;
 
@@ -48,7 +49,7 @@ void write_interchange(const std::filesystem::path& path, int64_t num_rows,
 
 struct NativeFile {
     std::array<int64_t, 3> header{};
-    std::vector<idx_t> indptr;
+    std::vector<offset_t> indptr;
     std::vector<term_t> indices;
     std::vector<float> values;
     std::vector<uint8_t> pad;
@@ -68,11 +69,11 @@ NativeFile read_native(const std::filesystem::path& path) {
     result.indices.resize(nnz);
     result.values.resize(nnz);
     result.pad.resize(layout::padding(layout::kHeaderBytes +
-                                      indptr_size * sizeof(idx_t) +
+                                      indptr_size * sizeof(offset_t) +
                                       nnz * sizeof(term_t)));
 
     file.read(reinterpret_cast<char*>(result.indptr.data()),
-              static_cast<std::streamsize>(sizeof(idx_t) * indptr_size));
+              static_cast<std::streamsize>(sizeof(offset_t) * indptr_size));
     file.read(reinterpret_cast<char*>(result.indices.data()),
               static_cast<std::streamsize>(sizeof(term_t) * nnz));
     file.read(reinterpret_cast<char*>(result.pad.data()),
@@ -147,7 +148,7 @@ TEST_F(CsrLayoutConvert, rewrites_arrays_at_native_widths) {
     ASSERT_EQ(native.header[0], 3);
     ASSERT_EQ(native.header[1], 4);
     ASSERT_EQ(native.header[2], 3);
-    ASSERT_EQ(native.indptr, std::vector<idx_t>({0, 2, 2, 3}));
+    ASSERT_EQ(native.indptr, std::vector<offset_t>({0, 2, 2, 3}));
     ASSERT_EQ(native.indices, std::vector<term_t>({0, 2, 1}));
     ASSERT_EQ(native.values, std::vector<float>({1.5F, 2.5F, 3.5F}));
 }
@@ -179,7 +180,7 @@ TEST_F(CsrLayoutConvert, handles_an_empty_matrix) {
     ASSERT_EQ(std::filesystem::file_size(out_path()),
               layout::native_file_size(3, 0));
     const auto native = read_native(out_path());
-    ASSERT_EQ(native.indptr, std::vector<idx_t>({0, 0, 0}));
+    ASSERT_EQ(native.indptr, std::vector<offset_t>({0, 0, 0}));
     ASSERT_TRUE(native.indices.empty());
 }
 

@@ -183,7 +183,7 @@ void GpuClusterAssigner::assign(const SparseVectors* vectors,
         return;
     }
 
-    const idx_t* indptr = vectors->indptr_data();
+    const offset_t* indptr = vectors->indptr_data();
     const size_t dim = vectors->get_dimension();
 
     // Centroids are clusters[j].front(); collect them and record which input

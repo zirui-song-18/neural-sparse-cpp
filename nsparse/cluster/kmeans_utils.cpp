@@ -52,7 +52,7 @@ template <class T>
 CentroidIndex<T> build_centroid_index(
     const SparseVectors* vectors,
     const std::vector<std::vector<idx_t>>& clusters) {
-    const idx_t* indptr = vectors->indptr_data();
+    const offset_t* indptr = vectors->indptr_data();
     const term_t* indices = vectors->indices_data();
     const T* values = vectors->typed_values_data<T>();
     const size_t n_clusters = clusters.size();
@@ -63,7 +63,7 @@ CentroidIndex<T> build_centroid_index(
     size_t nnz = 0;
     for (const auto& cluster : clusters) {
         const idx_t centroid = cluster.at(0);
-        for (idx_t j = indptr[centroid]; j < indptr[centroid + 1]; ++j) {
+        for (offset_t j = indptr[centroid]; j < indptr[centroid + 1]; ++j) {
             max_term = std::max<size_t>(max_term, indices[j]);
             ++nnz;
         }
@@ -74,7 +74,7 @@ CentroidIndex<T> build_centroid_index(
     index.term_ptr.assign(index.n_cols + 1, 0);
     for (const auto& cluster : clusters) {
         const idx_t centroid = cluster.at(0);
-        for (idx_t j = indptr[centroid]; j < indptr[centroid + 1]; ++j) {
+        for (offset_t j = indptr[centroid]; j < indptr[centroid + 1]; ++j) {
             index.term_ptr[indices[j] + 1]++;
         }
     }
@@ -87,7 +87,7 @@ CentroidIndex<T> build_centroid_index(
     std::vector<idx_t> cursor(index.term_ptr.begin(), index.term_ptr.end() - 1);
     for (size_t c = 0; c < n_clusters; ++c) {
         const idx_t centroid = clusters[c].at(0);
-        for (idx_t j = indptr[centroid]; j < indptr[centroid + 1]; ++j) {
+        for (offset_t j = indptr[centroid]; j < indptr[centroid + 1]; ++j) {
             const idx_t pos = cursor[indices[j]]++;
             index.cluster[pos] = static_cast<local_cluster_id_t>(c);
             index.weight[pos] = values[j];
@@ -108,7 +108,7 @@ template <class T>
 void map_docs_to_clusters_typed(const SparseVectors* vectors,
                                 const std::vector<idx_t>& docs,
                                 std::vector<std::vector<idx_t>>& clusters) {
-    const idx_t* indptr = vectors->indptr_data();
+    const offset_t* indptr = vectors->indptr_data();
     const term_t* indices = vectors->indices_data();
     const T* values = vectors->typed_values_data<T>();
     const size_t n_clusters = clusters.size();
@@ -131,7 +131,7 @@ void map_docs_to_clusters_typed(const SparseVectors* vectors,
             continue;
         }
         std::ranges::fill(similarities, acc_t(0));
-        for (idx_t j = indptr[doc_id]; j < indptr[doc_id + 1]; ++j) {
+        for (offset_t j = indptr[doc_id]; j < indptr[doc_id + 1]; ++j) {
             const size_t term = indices[j];
             if (term >= index.n_cols) {
                 continue;  // no centroid carries this term

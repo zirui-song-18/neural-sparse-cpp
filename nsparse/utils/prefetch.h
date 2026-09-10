@@ -70,7 +70,7 @@ inline void prefetch_vector_head(const term_t* indices, const T* values,
     }
 }
 
-inline void prefetch_indptr(const idx_t* indptr, idx_t doc_id) {
+inline void prefetch_indptr(const offset_t* indptr, idx_t doc_id) {
     NSPARSE_PREFETCH(&indptr[doc_id], 0, 0);
 }
 

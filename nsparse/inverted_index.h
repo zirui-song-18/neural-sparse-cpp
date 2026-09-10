@@ -30,7 +30,7 @@ public:
 
     InvertedIndex(const InvertedIndex&) = delete;
     InvertedIndex& operator=(const InvertedIndex&) = delete;
-    void add(idx_t n, const idx_t* indptr, const term_t* indices,
+    void add(idx_t n, const offset_t* indptr, const term_t* indices,
              const float* values) override;
     void build() override;
     size_t num_vectors() const override { return num_vectors_; }
@@ -63,7 +63,7 @@ public:
                                      const char* index_file, size_t pos);
 
 protected:
-    auto search(idx_t n, const idx_t* indptr, const term_t* indices,
+    auto search(idx_t n, const offset_t* indptr, const term_t* indices,
                 const float* values, int k,
                 SearchParameters* search_parameters = nullptr)
         -> pair_of_score_id_vectors_t override;

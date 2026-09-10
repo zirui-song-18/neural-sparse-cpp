@@ -25,14 +25,14 @@ public:
 
     BrutalIndex(const BrutalIndex&) = delete;
     BrutalIndex& operator=(const BrutalIndex&) = delete;
-    void add(idx_t n, const idx_t* indptr, const term_t* indices,
+    void add(idx_t n, const offset_t* indptr, const term_t* indices,
              const float* values) override;
 
     std::array<char, 4> id() const override { return name; }
     static constexpr std::array<char, 4> name = {'B', 'R', 'U', 'T'};
 
 protected:
-    auto search(idx_t n, const idx_t* indptr, const term_t* indices,
+    auto search(idx_t n, const offset_t* indptr, const term_t* indices,
                 const float* values, int k,
                 SearchParameters* search_parameters = nullptr)
         -> pair_of_score_id_vectors_t override;

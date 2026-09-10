@@ -99,10 +99,10 @@ inline std::vector<float> calculate_summary_scores(
     return summary_scores;
 }
 
-inline float compute_similarity(idx_t doc_id, const idx_t* indptr,
+inline float compute_similarity(idx_t doc_id, const offset_t* indptr,
                                 const term_t* indices, const uint8_t* values,
                                 const uint8_t* dense, size_t element_size) {
-    const idx_t start = indptr[doc_id];
+    const offset_t start = indptr[doc_id];
     const size_t len = indptr[doc_id + 1] - start;
     float score = 0.0F;
     if (element_size == U32) {

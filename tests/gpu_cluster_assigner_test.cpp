@@ -31,7 +31,7 @@ namespace {
 std::vector<std::vector<idx_t>> cpu_reference_assign(
     const SparseVectors* vectors, const std::vector<idx_t>& docs,
     std::vector<std::vector<idx_t>> clusters) {
-    const idx_t* indptr = vectors->indptr_data();
+    const offset_t* indptr = vectors->indptr_data();
     const term_t* indices = vectors->indices_data();
     const float* values = vectors->values_data_float();
     const size_t n_clusters = clusters.size();
@@ -46,7 +46,7 @@ std::vector<std::vector<idx_t>> cpu_reference_assign(
                 is_centroid = true;
                 break;
             }
-            const idx_t start = indptr[c];
+            const offset_t start = indptr[c];
             const size_t len = indptr[c + 1] - start;
             float score = 0.0F;
             for (size_t t = 0; t < len; ++t) {
@@ -164,12 +164,12 @@ void cpu_reference_maxpool(const SparseVectors* vectors,
                           const std::vector<idx_t>& doc_ids,
                           std::vector<term_t>& terms,
                           std::vector<float>& values, float& sum) {
-    const idx_t* indptr = vectors->indptr_data();
+    const offset_t* indptr = vectors->indptr_data();
     const term_t* indices = vectors->indices_data();
     const float* vals = vectors->values_data_float();
     std::map<term_t, float> m;
     for (idx_t d : doc_ids) {
-        for (idx_t j = indptr[d]; j < indptr[d + 1]; ++j) {
+        for (offset_t j = indptr[d]; j < indptr[d + 1]; ++j) {
             auto& v = m[indices[j]];
             v = std::max(v, vals[j]);
         }

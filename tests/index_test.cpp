@@ -31,7 +31,7 @@ public:
 
     std::array<char, 4> id() const override { return {'T', 'E', 'S', 'T'}; }
 
-    void add(nsparse::idx_t n, const nsparse::idx_t* indptr,
+    void add(nsparse::idx_t n, const nsparse::offset_t* indptr,
              const nsparse::term_t* indices, const float* values) override {
         num_added = n;
         this->indptr.assign(indptr, indptr + n + 1);
@@ -42,7 +42,7 @@ public:
 
     int add_calls = 0;
     nsparse::idx_t num_added = 0;
-    std::vector<nsparse::idx_t> indptr;
+    std::vector<nsparse::offset_t> indptr;
     std::vector<nsparse::term_t> indices;
     std::vector<float> values;
 };
@@ -116,7 +116,7 @@ TEST(IndexReadCSR, adds_vectors_from_file) {
 
     ASSERT_EQ(index.add_calls, 1);
     ASSERT_EQ(index.num_added, 3);
-    ASSERT_EQ(index.indptr, (std::vector<nsparse::idx_t>{0, 2, 2, 3}));
+    ASSERT_EQ(index.indptr, (std::vector<nsparse::offset_t>{0, 2, 2, 3}));
     ASSERT_EQ(index.indices, (std::vector<nsparse::term_t>{0, 2, 1}));
     ASSERT_EQ(index.values, (std::vector<float>{1.5F, 2.5F, 3.5F}));
 }

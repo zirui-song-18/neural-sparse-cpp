@@ -56,7 +56,7 @@ public:
     // Persisted, since a mapped index has no in-RAM vectors_ to derive it from.
     size_t num_vectors() const override { return num_vectors_; }
 
-    void add(idx_t n, const idx_t* indptr, const term_t* indices,
+    void add(idx_t n, const offset_t* indptr, const term_t* indices,
              const float* values) override;
     void build() override;
 
@@ -123,7 +123,7 @@ protected:
     detail::InlineForwardIndex fwd_;
 
 private:
-    auto search(idx_t n, const idx_t* indptr, const term_t* indices,
+    auto search(idx_t n, const offset_t* indptr, const term_t* indices,
                 const float* values, int k,
                 SearchParameters* search_parameters = nullptr)
         -> pair_of_score_id_vectors_t override;
@@ -152,7 +152,7 @@ private:
     // Scores every selected doc directly through the doc-locator directory, for
     // a mapped index. Requires doc_locators_ populated.
     [[nodiscard]] auto exact_match_directory(
-        idx_t n, const idx_t* indptr, const term_t* indices,
+        idx_t n, const offset_t* indptr, const term_t* indices,
         const float* values, int k, const IDSelectorEnumerable& selector,
         const SearchParameters* search_parameters) const
         -> pair_of_score_id_vectors_t;

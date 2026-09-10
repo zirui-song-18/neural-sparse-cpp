@@ -165,7 +165,7 @@ bool summarize_list_impl(const SparseVectors* vectors, const idx_t* docs,
                          const idx_t* offsets, size_t n_clusters,
                          std::vector<GpuSummarizer::ClusterSummary>& out) {
     const size_t dim = vectors->get_dimension();
-    const idx_t* indptr = vectors->indptr_data();
+    const offset_t* indptr = vectors->indptr_data();
 
     const size_t n_docs = static_cast<size_t>(offsets[n_clusters] - offsets[0]);
     if (n_docs == 0) {

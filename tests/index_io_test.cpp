@@ -92,7 +92,7 @@ public:
     std::array<char, 4> id() const override { return name; }
     uint32_t format_version() const override { return kFormatVersion; }
 
-    void add(nsparse::idx_t /*n*/, const nsparse::idx_t* /*indptr*/,
+    void add(nsparse::idx_t /*n*/, const nsparse::offset_t* /*indptr*/,
              const nsparse::term_t* /*indices*/,
              const float* /*values*/) override {}
 
@@ -171,8 +171,8 @@ TEST(IndexIO, WriteIndexThrowsForNonIndexIO) {
     public:
         NonSerializableIndex() : Index(10) {}
         std::array<char, 4> id() const override { return {'N', 'O', 'I', 'O'}; }
-        void add(nsparse::idx_t, const nsparse::idx_t*, const nsparse::term_t*,
-                 const float*) override {}
+        void add(nsparse::idx_t, const nsparse::offset_t*,
+                 const nsparse::term_t*, const float*) override {}
         const nsparse::SparseVectors* get_vectors() const override {
             return nullptr;
         }
@@ -350,7 +350,7 @@ TEST(IndexIO, RoundtripIDMapIndexWithData) {
     auto* original = new nsparse::IDMapIndex(seismic);
 
     // Add some vectors with custom IDs
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -436,7 +436,7 @@ TEST(IndexIO, StrictIO_RoundtripIDMapSeismicIndex) {
     auto* seismic = new nsparse::SeismicIndex(128);
     auto* original = new nsparse::IDMapIndex(seismic);
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -465,7 +465,7 @@ TEST(IndexIO, StrictIO_RoundtripIDMapInvertedIndex) {
     auto* inverted = new nsparse::InvertedIndex(128);
     auto* original = new nsparse::IDMapIndex(inverted);
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -495,7 +495,7 @@ TEST(IndexIO, StrictIO_RoundtripIDMapInvertedIndex) {
 TEST(IndexIO, RoundtripInvertedIndexCountsATrailingEmptyDocument) {
     nsparse::InvertedIndex original(128);
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 2};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 2};
     std::vector<nsparse::term_t> indices = {0, 1};
     std::vector<float> values = {1.0F, 0.5F};
     original.add(2, indptr.data(), indices.data(), values.data());
@@ -519,7 +519,7 @@ TEST(IndexIO, RoundtripInvertedIndexCountsATrailingEmptyDocument) {
 TEST(IndexIO, ReadIndexRejectsAnInvertedIndexFileWithoutTheDocumentCount) {
     nsparse::InvertedIndex original(128);
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     original.add(2, indptr.data(), indices.data(), values.data());
@@ -543,7 +543,7 @@ TEST(IndexIO, StrictIO_RoundtripIDMapSeismicSQIndex) {
     auto* sq_index = new nsparse::SeismicScalarQuantizedIndex(128);
     auto* original = new nsparse::IDMapIndex(sq_index);
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -595,7 +595,7 @@ TEST(IndexIO, UseMmapFlagMapsTheInvertedIndexDelegateOfAnIDMap) {
     auto* inverted = new nsparse::InvertedIndex(128);
     nsparse::IDMapIndex original(inverted);
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -612,7 +612,7 @@ TEST(IndexIO, UseMmapFlagMapsTheInvertedIndexDelegateOfAnIDMap) {
     ASSERT_EQ(loaded->num_vectors(), 2);
 
     // The id map still round-trips: search returns external ids, not internal.
-    std::vector<nsparse::idx_t> q_indptr = {0, 1};
+    std::vector<nsparse::offset_t> q_indptr = {0, 1};
     std::vector<nsparse::term_t> q_indices = {0};
     std::vector<float> q_values = {1.0F};
     std::vector<nsparse::idx_t> labels(1, nsparse::detail::INVALID_IDX);
@@ -632,7 +632,7 @@ TEST(IndexIO, UseMmapFlagReachesTheIDMapDelegate) {
         new nsparse::SeismicIndex(5, {.lambda = 10, .beta = 2, .alpha = 0.5F});
     nsparse::IDMapIndex original(seismic);
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -658,10 +658,10 @@ TEST(IndexIO, UseMmapFlagReachesTheIDMapDelegate) {
         reinterpret_cast<const uint8_t*>(vectors->indices_data());
     EXPECT_EQ(indices_bytes - indptr_bytes,
               static_cast<ptrdiff_t>((vectors->num_vectors() + 1) *
-                                     sizeof(nsparse::idx_t)));
+                                     sizeof(nsparse::offset_t)));
 
     // The id map still round-trips: search returns external ids, not internal.
-    std::vector<nsparse::idx_t> q_indptr = {0, 1};
+    std::vector<nsparse::offset_t> q_indptr = {0, 1};
     std::vector<nsparse::term_t> q_indices = {0};
     std::vector<float> q_values = {1.0F};
     std::vector<nsparse::idx_t> labels(1, nsparse::detail::INVALID_IDX);
@@ -681,7 +681,7 @@ TEST(IndexIO, UseMmapFlagReachesTheIDMapQuantizedDelegate) {
         {.lambda = 10, .beta = 2, .alpha = 0.5F}, 5);
     nsparse::IDMapIndex original(seismic_sq);
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -706,12 +706,12 @@ TEST(IndexIO, UseMmapFlagReachesTheIDMapQuantizedDelegate) {
         reinterpret_cast<const uint8_t*>(vectors->indices_data());
     EXPECT_EQ(indices_bytes - indptr_bytes,
               static_cast<ptrdiff_t>((vectors->num_vectors() + 1) *
-                                     sizeof(nsparse::idx_t)));
+                                     sizeof(nsparse::offset_t)));
     // The quantizer header survived the mapped read, so the codes are 1 byte
     // wide rather than being strided as floats.
     EXPECT_EQ(vectors->get_element_size(), 1);
 
-    std::vector<nsparse::idx_t> q_indptr = {0, 1};
+    std::vector<nsparse::offset_t> q_indptr = {0, 1};
     std::vector<nsparse::term_t> q_indices = {0};
     std::vector<float> q_values = {1.0F};
     std::vector<nsparse::idx_t> labels(1, nsparse::detail::INVALID_IDX);
@@ -854,7 +854,7 @@ TEST(IndexIOVersion, ReadIndexAcceptsTheVersionItWrites) {
 // SEIS, and vice versa.
 TEST(IndexIOVersion, ANestedDelegateCarriesItsOwnVersion) {
     nsparse::IDMapIndex original(new nsparse::SeismicIndex(128));
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     std::vector<nsparse::idx_t> ids = {100, 200};
@@ -893,7 +893,7 @@ TEST(IndexIOVersion, ANestedDelegateCarriesItsOwnVersion) {
 TEST(IndexIOVersion, MappedReadAlsoRejectsAVersionFromTheFuture) {
     TempIndexFile file("nsparse_index_io_future_version_mmap.idx");
     nsparse::InvertedIndex original(128);
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     original.add(2, indptr.data(), indices.data(), values.data());
@@ -931,7 +931,7 @@ TEST(IndexIOVersion, MappedReadRejectsAFutureDiskSeismicVersion) {
     TempIndexFile file("nsparse_index_io_dsei_future_version.idx");
     nsparse::DiskSeismicIndex original(
         5, {.lambda = 10, .beta = 2, .alpha = 0.5F});
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<float> values = {1.0F, 0.5F, 0.8F, 0.3F};
     original.add(2, indptr.data(), indices.data(), values.data());

@@ -26,7 +26,7 @@ SparseVectors::SparseVectors(SparseVectorsConfig config) : config_(config) {
 }
 
 SparseVectors SparseVectors::map_vectors(SparseVectorsConfig config,
-                                         const idx_t* indptr,
+                                         const offset_t* indptr,
                                          size_t indptr_size,
                                          const term_t* indices,
                                          size_t indices_size,
@@ -76,20 +76,20 @@ SparseVectors SparseVectors::map_vectors(SparseVectorsConfig config,
             "Mapped indptr does not end at the index count");
     }
 
-    vectors.indptr_ = Buf<idx_t>::borrow(indptr, indptr_size);
+    vectors.indptr_ = Buf<offset_t>::borrow(indptr, indptr_size);
     vectors.indices_ = Buf<term_t>::borrow(indices, indices_size);
     vectors.values_ = Buf<uint8_t>::borrow(values, values_size);
     return vectors;
 }
 
-void SparseVectors::add_vectors(const std::vector<idx_t>& indptr,
+void SparseVectors::add_vectors(const std::vector<offset_t>& indptr,
                                 const std::vector<term_t>& indices,
                                 const std::vector<uint8_t>& weights) {
     add_vectors(indptr.data(), indptr.size(), indices.data(), indices.size(),
                 weights.data(), weights.size());
 }
 
-void SparseVectors::add_vectors(const idx_t* indptr, size_t indptr_size,
+void SparseVectors::add_vectors(const offset_t* indptr, size_t indptr_size,
                                 const term_t* indices, size_t indices_size,
                                 const uint8_t* weights, size_t weights_size) {
     if (indices_size * config_.element_size != weights_size) {
@@ -102,7 +102,7 @@ void SparseVectors::add_vectors(const idx_t* indptr, size_t indptr_size,
     // Always copies: the arguments are often a caller-local buffer (freshly
     // quantized codes, say), and the incoming offsets are rebased onto what is
     // already stored. Borrowing is map_vectors' job.
-    std::vector<idx_t> indptr_vec = indptr_.take_vector();
+    std::vector<offset_t> indptr_vec = indptr_.take_vector();
     std::vector<term_t> indices_vec = indices_.take_vector();
     std::vector<uint8_t> values_vec = values_.take_vector();
 
@@ -115,12 +115,12 @@ void SparseVectors::add_vectors(const idx_t* indptr, size_t indptr_size,
 
     // Append weights directly (already in uint8_t format)
     values_vec.insert(values_vec.end(), weights, weights + weights_size);
-    idx_t offset = indptr_vec.back();
+    offset_t offset = indptr_vec.back();
     for (size_t i = 1; i < indptr_size; ++i) {
         indptr_vec.push_back(indptr[i] + offset);
     }
 
-    indptr_ = Buf<idx_t>::own(std::move(indptr_vec));
+    indptr_ = Buf<offset_t>::own(std::move(indptr_vec));
     indices_ = Buf<term_t>::own(std::move(indices_vec));
     values_ = Buf<uint8_t>::own(std::move(values_vec));
 }
@@ -133,12 +133,12 @@ void SparseVectors::add_vector(const std::vector<term_t>& indices,
 void SparseVectors::add_vector(const term_t* indices, size_t indices_size,
                                const uint8_t* weights, size_t weights_size) {
     // Copies for the same reason add_vectors does; see the note there.
-    std::vector<idx_t> indptr_vec = indptr_.take_vector();
+    std::vector<offset_t> indptr_vec = indptr_.take_vector();
     std::vector<term_t> indices_vec = indices_.take_vector();
     std::vector<uint8_t> values_vec = values_.take_vector();
 
     // Get the current offset (where the new vector starts)
-    idx_t offset = indptr_vec.empty() ? 0 : indptr_vec.back();
+    offset_t offset = indptr_vec.empty() ? 0 : indptr_vec.back();
 
     // If this is the first vector, initialize indptr with 0
     if (indptr_vec.empty()) {
@@ -147,9 +147,9 @@ void SparseVectors::add_vector(const term_t* indices, size_t indices_size,
 
     indices_vec.insert(indices_vec.end(), indices, indices + indices_size);
     values_vec.insert(values_vec.end(), weights, weights + weights_size);
-    indptr_vec.push_back(offset + static_cast<idx_t>(indices_size));
+    indptr_vec.push_back(offset + static_cast<offset_t>(indices_size));
 
-    indptr_ = Buf<idx_t>::own(std::move(indptr_vec));
+    indptr_ = Buf<offset_t>::own(std::move(indptr_vec));
     indices_ = Buf<term_t>::own(std::move(indices_vec));
     values_ = Buf<uint8_t>::own(std::move(values_vec));
 }
@@ -160,12 +160,12 @@ std::vector<float> SparseVectors::get_dense_vector_float(
         throw std::out_of_range("Vector index out of range");
     }
 
-    idx_t start = indptr_[vector_idx];
-    idx_t end = indptr_[vector_idx + 1];
+    offset_t start = indptr_[vector_idx];
+    offset_t end = indptr_[vector_idx + 1];
     std::vector<float> dense_vector(
         config_.dimension > 0 ? config_.dimension : indices_[end - 1] + 1,
         0.0F);
-    for (idx_t i = start; i < end; ++i) {
+    for (offset_t i = start; i < end; ++i) {
         const uint8_t* value_ptr = values_.data() + (i * config_.element_size);
         if (config_.element_size == U32) {
             dense_vector[indices_[i]] =
@@ -184,12 +184,12 @@ std::vector<uint8_t> SparseVectors::get_dense_vector(idx_t vector_idx) const {
     if (vector_idx < 0 || vector_idx > static_cast<idx_t>(indptr_.size()) - 2) {
         throw std::out_of_range("Vector index out of range");
     }
-    idx_t start = indptr_[vector_idx];
-    idx_t end = indptr_[vector_idx + 1];
+    offset_t start = indptr_[vector_idx];
+    offset_t end = indptr_[vector_idx + 1];
     size_t size = end - start;
     std::vector<uint8_t> dense_vector(config_.dimension * config_.element_size,
                                       0.0F);
-    for (idx_t i = start; i < end; ++i) {
+    for (offset_t i = start; i < end; ++i) {
         for (idx_t j = 0; j < config_.element_size; ++j) {
             dense_vector[indices_[i] * config_.element_size + j] =
                 values_[i * config_.element_size + j];
@@ -242,7 +242,7 @@ void SparseVectors::deserialize(IOReader* io_reader) {
 
         // Skips the padding serialize() wrote before each array.
         size_t indptr_size = vector_count + 1;
-        indptr_ = io_align::read_padded<idx_t>(io_reader, indptr_size);
+        indptr_ = io_align::read_padded<offset_t>(io_reader, indptr_size);
 
         size_t indices_size = indptr_[vector_count];
         indices_ = io_align::read_padded<term_t>(io_reader, indices_size);
@@ -271,8 +271,8 @@ void SparseVectors::mmap_deserialize(MmapCursor* cursor) {
     if (indptr_size == 0) {
         throw std::runtime_error("mmap: implausible vector count in index file");
     }
-    io_align::skip_padding(cursor, alignof(idx_t));
-    const idx_t* indptr = cursor->read_array<idx_t>(indptr_size);
+    io_align::skip_padding(cursor, alignof(offset_t));
+    const offset_t* indptr = cursor->read_array<offset_t>(indptr_size);
 
     const auto indices_size = static_cast<size_t>(indptr[vector_count]);
     io_align::skip_padding(cursor, alignof(term_t));

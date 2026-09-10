@@ -48,7 +48,7 @@ inline SeismicClusterParameters cluster_params() {
 }
 
 struct CSR {
-    std::vector<idx_t> indptr;
+    std::vector<offset_t> indptr;
     std::vector<term_t> indices;
     std::vector<float> values;
     idx_t n = 0;
@@ -75,7 +75,7 @@ inline CSR make_corpus(idx_t rows, unsigned seed) {
             c.indices.push_back(static_cast<term_t>(t));
             c.values.push_back(val_dist(rng));
         }
-        c.indptr.push_back(static_cast<idx_t>(c.indices.size()));
+        c.indptr.push_back(static_cast<offset_t>(c.indices.size()));
     }
     return c;
 }
@@ -95,12 +95,12 @@ inline CSR make_corpus_with_remainder(int n_fillers, int n_victims) {
         c.values.push_back(1.0F);
         c.indices.push_back(static_cast<term_t>(r + 1));
         c.values.push_back(1.0F);
-        c.indptr.push_back(static_cast<idx_t>(c.indices.size()));
+        c.indptr.push_back(static_cast<offset_t>(c.indices.size()));
     }
     for (int v = 0; v < n_victims; ++v) {
         c.indices.push_back(0);
         c.values.push_back(0.01F);
-        c.indptr.push_back(static_cast<idx_t>(c.indices.size()));
+        c.indptr.push_back(static_cast<offset_t>(c.indices.size()));
     }
     return c;
 }

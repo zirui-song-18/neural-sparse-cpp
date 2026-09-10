@@ -29,7 +29,7 @@ struct CSRMatrix {
     int64_t nrow;
     int64_t ncol;
     int64_t nnz;
-    std::vector<nsparse::idx_t> indptr;
+    std::vector<nsparse::offset_t> indptr;
     std::vector<nsparse::term_t> indices;
     std::vector<float> data;
 };
@@ -52,7 +52,7 @@ CSRMatrix read_csr(const std::string& path) {
            static_cast<std::streamsize>((m.nrow + 1) * sizeof(int64_t)));
     m.indptr.resize(m.nrow + 1);
     for (int64_t i = 0; i <= m.nrow; ++i) {
-        m.indptr[i] = static_cast<nsparse::idx_t>(indptr64[i]);
+        m.indptr[i] = static_cast<nsparse::offset_t>(indptr64[i]);
     }
 
     std::vector<int32_t> indices32(m.nnz);

@@ -27,7 +27,7 @@ def handle_Index(the_class):
         n : int
             Number of query vectors
         indptr : array_like
-            CSR indptr array (int32)
+            CSR indptr array (int32 or int64)
         indices : array_like
             CSR indices array (uint16)
         values : array_like
@@ -45,7 +45,7 @@ def handle_Index(the_class):
             Array of shape (n, k) with neighbor indices
         """
         # Ensure arrays are contiguous with correct dtypes for SWIG typemaps
-        indptr = np.ascontiguousarray(indptr, dtype=np.int32)
+        indptr = np.ascontiguousarray(indptr, dtype=np.int64)
         indices = np.ascontiguousarray(indices, dtype=np.uint16)
         values = np.ascontiguousarray(values, dtype=np.float32)
 
@@ -69,7 +69,7 @@ def handle_Index(the_class):
         n : int
             Number of vectors to add
         indptr : array_like
-            CSR indptr array (int32)
+            CSR indptr array (int32 or int64)
         indices : array_like
             CSR indices array (uint16)
         values : array_like
@@ -77,7 +77,7 @@ def handle_Index(the_class):
         ids : array_like
             Custom IDs for the vectors (int32)
         """
-        indptr = np.ascontiguousarray(indptr, dtype=np.int32)
+        indptr = np.ascontiguousarray(indptr, dtype=np.int64)
         indices = np.ascontiguousarray(indices, dtype=np.uint16)
         values = np.ascontiguousarray(values, dtype=np.float32)
         ids = np.ascontiguousarray(ids, dtype=np.int32)

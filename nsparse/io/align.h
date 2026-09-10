@@ -16,6 +16,7 @@
 #include <stdexcept>
 
 #include "nsparse/io/io.h"
+#include "nsparse/types.h"
 #include "nsparse/utils/buf.h"
 #include "nsparse/utils/mmap_cursor.h"
 
@@ -36,6 +37,8 @@ namespace nsparse::io_align {
 // Largest alignment any serialized element needs, and so the most padding a
 // single call can insert.
 constexpr size_t kMaxAlignment = 8;
+static_assert(alignof(offset_t) <= kMaxAlignment,
+              "offset_t alignment must fit the array-padding budget");
 
 // Bytes to insert at `pos` to reach an `alignment` boundary. Zero is reachable
 // input, not a caller bug: the alignment can be an element width read from the

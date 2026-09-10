@@ -53,13 +53,13 @@ void write_interchange_csr(const std::string& path, const Corpus& c,
 
 // Writes a corpus of pre-quantized codes as a NATIVE CSR -- the layout read_mcsr
 // borrows when a quantizing index maps it: int64 header {rows, num_cols, nnz},
-// idx_t indptr[rows+1], term_t indices[nnz], pad to alignof(float), then
+// offset_t indptr[rows+1], term_t indices[nnz], pad to alignof(float), then
 // `element_size`-byte codes[nnz]. `codes` holds nnz*element_size bytes,
 // row-aligned with `indices`. This is the code-width analog of
 // csr_layout::convert's output, written directly since the codes path has no
 // interchange form.
 inline void write_native_codes_csr(const std::string& path,
-                                   const std::vector<idx_t>& indptr,
+                                   const std::vector<offset_t>& indptr,
                                    const std::vector<term_t>& indices,
                                    const std::vector<uint8_t>& codes,
                                    int64_t num_cols, size_t element_size) {
@@ -77,11 +77,11 @@ inline void write_native_codes_csr(const std::string& path,
     out.write(reinterpret_cast<const char*>(header.data()),
               header.size() * sizeof(int64_t));
     out.write(reinterpret_cast<const char*>(indptr.data()),
-              static_cast<std::streamsize>(indptr.size() * sizeof(idx_t)));
+              static_cast<std::streamsize>(indptr.size() * sizeof(offset_t)));
     out.write(reinterpret_cast<const char*>(indices.data()),
               static_cast<std::streamsize>(indices.size() * sizeof(term_t)));
     const size_t values_pos = csr_layout::kHeaderBytes +
-                              indptr.size() * sizeof(idx_t) +
+                              indptr.size() * sizeof(offset_t) +
                               indices.size() * sizeof(term_t);
     const std::array<char, alignof(float)> pad{};
     if (const size_t pad_bytes = csr_layout::padding(values_pos);

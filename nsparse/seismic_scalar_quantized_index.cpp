@@ -114,7 +114,7 @@ void query_single_inverted_list(const SparseVectors* vectors,
             const auto& doc_id = docs[i];
             if (i + kPrefetchDist < n_docs) {
                 const idx_t next_doc = docs[i + kPrefetchDist];
-                const idx_t next_start = indptr[next_doc];
+                const offset_t next_start = indptr[next_doc];
                 const size_t next_len = indptr[next_doc + 1] - next_start;
                 detail::prefetch_vector_head(indices + next_start,
                                              values + next_start, next_len,
@@ -146,7 +146,7 @@ SeismicScalarQuantizedIndex::SeismicScalarQuantizedIndex(
       sq_(quantizer_type, vmin, vmax),
       cluster_parameter_(parameter) {}
 
-void SeismicScalarQuantizedIndex::add(idx_t n, const idx_t* indptr,
+void SeismicScalarQuantizedIndex::add(idx_t n, const offset_t* indptr,
                                       const term_t* indices,
                                       const float* values) {
     throw_if_not_positive(n);
@@ -188,7 +188,7 @@ void SeismicScalarQuantizedIndex::build() {
         &batch_spill_);
 }
 
-auto SeismicScalarQuantizedIndex::search(idx_t n, const idx_t* indptr,
+auto SeismicScalarQuantizedIndex::search(idx_t n, const offset_t* indptr,
                                          const term_t* indices,
                                          const float* values, int k,
                                          SearchParameters* search_parameters)
@@ -268,7 +268,7 @@ auto SeismicScalarQuantizedIndex::search(idx_t n, const idx_t* indptr,
 
 #pragma omp for schedule(dynamic, 64)
         for (idx_t query_idx = 0; query_idx < n; ++query_idx) {
-            const idx_t start = indptr[query_idx];
+            const offset_t start = indptr[query_idx];
             const size_t len = indptr[query_idx + 1] - start;
             const term_t* q_indices = indices + start;
             const uint8_t* q_val_bytes = query_values + start * element_size;

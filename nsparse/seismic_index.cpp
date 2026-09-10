@@ -95,7 +95,7 @@ void query_single_inverted_list(
             const auto& doc_id = docs[i];
             if (i + kPrefetchDist < n_docs) {
                 const idx_t next_doc = docs[i + kPrefetchDist];
-                const idx_t next_start = indptr[next_doc];
+                const offset_t next_start = indptr[next_doc];
                 const size_t next_len = indptr[next_doc + 1] - next_start;
                 detail::prefetch_vector_head(indices + next_start,
                                              values + next_start, next_len,
@@ -108,7 +108,7 @@ void query_single_inverted_list(
             if (id_selector != nullptr && !id_selector->is_member(doc_id)) {
                 continue;
             }
-            const idx_t start = indptr[doc_id];
+            const offset_t start = indptr[doc_id];
             const size_t len = indptr[doc_id + 1] - start;
             auto score = detail::dot_product_float_dense(
                 indices + start, values + start, len, dense.data());
@@ -124,7 +124,7 @@ SeismicIndex::SeismicIndex(int dim)
 SeismicIndex::SeismicIndex(int dim, SeismicClusterParameters parameter)
     : MmapIndex(dim), cluster_parameter_(parameter) {}
 
-void SeismicIndex::add(idx_t n, const idx_t* indptr, const term_t* indices,
+void SeismicIndex::add(idx_t n, const offset_t* indptr, const term_t* indices,
                        const float* values) {
     throw_if_not_positive(n);
     throw_if_any_null(indptr, indices, values);
@@ -147,8 +147,8 @@ void SeismicIndex::build() {
         &batch_spill_);
 }
 
-auto SeismicIndex::search(idx_t n, const idx_t* indptr, const term_t* indices,
-                          const float* values, int k,
+auto SeismicIndex::search(idx_t n, const offset_t* indptr,
+                          const term_t* indices, const float* values, int k,
                           SearchParameters* search_parameters)
     -> pair_of_score_id_vectors_t {
     if (vectors_ == nullptr || n == 0) {
@@ -200,7 +200,7 @@ auto SeismicIndex::search(idx_t n, const idx_t* indptr, const term_t* indices,
 
 #pragma omp for schedule(dynamic, 64)
         for (idx_t query_idx = 0; query_idx < n; ++query_idx) {
-            const idx_t start = indptr[query_idx];
+            const offset_t start = indptr[query_idx];
             const size_t len = indptr[query_idx + 1] - start;
             const term_t* q_indices = indices + start;
             const float* q_values = values + start;

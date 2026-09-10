@@ -38,7 +38,7 @@ protected:
     // result rather than being locals of the caller.
     template <class Value>
     nsparse::SparseVectors make(size_t dimension,
-                                std::vector<nsparse::idx_t> indptr,
+                                std::vector<nsparse::offset_t> indptr,
                                 std::vector<nsparse::term_t> indices,
                                 const std::vector<Value>& values) {
         const nsparse::SparseVectorsConfig config = {
@@ -61,7 +61,7 @@ protected:
 
 private:
     struct Storage {
-        std::vector<nsparse::idx_t> indptr;
+        std::vector<nsparse::offset_t> indptr;
         std::vector<nsparse::term_t> indices;
         // Words, not bytes: map_vectors rejects a values pointer misaligned for
         // element_size, and an allocation is only guaranteed aligned for its own
@@ -75,7 +75,7 @@ private:
     };
 
     template <class Value>
-    const Storage& store(std::vector<nsparse::idx_t> indptr,
+    const Storage& store(std::vector<nsparse::offset_t> indptr,
                          std::vector<nsparse::term_t> indices,
                          const std::vector<Value>& values) {
         // A deque keeps earlier elements put, so a second make() in the same
@@ -229,7 +229,7 @@ TEST_P(SparseVectorsResidency, get_dense_vector_out_of_range) {
 TEST_P(SparseVectorsResidency, indptr_data) {
     auto vectors = make<float>(5, {0, 2, 3}, {0, 1, 4}, {1.0F, 2.0F, 3.0F});
 
-    const nsparse::idx_t* indptr = vectors.indptr_data();
+    const nsparse::offset_t* indptr = vectors.indptr_data();
     ASSERT_EQ(indptr[0], 0);
     ASSERT_EQ(indptr[1], 2);
     ASSERT_EQ(indptr[2], 3);
@@ -417,7 +417,7 @@ TEST(SparseVectors, add_vectors_batch_float) {
         {.element_size = nsparse::U32, .dimension = 10});
 
     // Two vectors: [0,1] and [2,3,4]
-    std::vector<nsparse::idx_t> indptr = {0, 2, 5};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 5};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3, 4};
     std::vector<float> values = {1.0F, 2.0F, 3.0F, 4.0F, 5.0F};
 
@@ -433,7 +433,7 @@ TEST(SparseVectors, add_vectors_batch_uint8) {
     nsparse::SparseVectors vectors(
         {.element_size = nsparse::U8, .dimension = 10});
 
-    std::vector<nsparse::idx_t> indptr = {0, 2, 4};
+    std::vector<nsparse::offset_t> indptr = {0, 2, 4};
     std::vector<nsparse::term_t> indices = {0, 1, 2, 3};
     std::vector<uint8_t> values = {10, 20, 30, 40};
 
@@ -458,7 +458,7 @@ TEST(SparseVectors, add_vectors_empty_indptr) {
     nsparse::SparseVectors vectors(
         {.element_size = nsparse::U32, .dimension = 10});
 
-    std::vector<nsparse::idx_t> indptr = {0};  // Less than 2 elements
+    std::vector<nsparse::offset_t> indptr = {0};  // Less than 2 elements
     std::vector<nsparse::term_t> indices = {};
     std::vector<uint8_t> values = {};
 
@@ -471,7 +471,7 @@ TEST(SparseVectors, add_vectors_throws_on_size_mismatch) {
     nsparse::SparseVectors vectors(
         {.element_size = nsparse::U32, .dimension = 10});
 
-    std::vector<nsparse::idx_t> indptr = {0, 2};
+    std::vector<nsparse::offset_t> indptr = {0, 2};
     std::vector<nsparse::term_t> indices = {0, 1};
     std::vector<uint8_t> values = {1, 2};  // Should be 8 bytes for 2 floats
 
@@ -497,7 +497,7 @@ TEST(SparseVectors, serialize_deserialize_empty) {
 // ---------------------------------------------------------------------------
 
 TEST(SparseVectorsMapVectors, borrows_without_copying) {
-    const std::vector<nsparse::idx_t> indptr = {0, 2};
+    const std::vector<nsparse::offset_t> indptr = {0, 2};
     const std::vector<nsparse::term_t> indices = {0, 1};
     const std::vector<float> values = {1.0F, 2.0F};
 
@@ -522,7 +522,7 @@ TEST(SparseVectorsMapVectors, an_empty_indptr_maps_nothing) {
 }
 
 TEST(SparseVectorsMapVectors, cannot_be_appended_to) {
-    const std::vector<nsparse::idx_t> indptr = {0, 1};
+    const std::vector<nsparse::offset_t> indptr = {0, 1};
     const std::vector<nsparse::term_t> indices = {0};
     const std::vector<uint8_t> values = {7};
 
@@ -537,7 +537,7 @@ TEST(SparseVectorsMapVectors, cannot_be_appended_to) {
 }
 
 TEST(SparseVectorsMapVectors, throws_on_zero_dimension) {
-    const std::vector<nsparse::idx_t> indptr = {0, 1};
+    const std::vector<nsparse::offset_t> indptr = {0, 1};
     const std::vector<nsparse::term_t> indices = {0};
     const std::vector<uint8_t> values = {7};
 
@@ -549,7 +549,7 @@ TEST(SparseVectorsMapVectors, throws_on_zero_dimension) {
 }
 
 TEST(SparseVectorsMapVectors, throws_on_unsupported_element_size) {
-    const std::vector<nsparse::idx_t> indptr = {0, 1};
+    const std::vector<nsparse::offset_t> indptr = {0, 1};
     const std::vector<nsparse::term_t> indices = {0};
     const std::vector<uint8_t> values = {1, 2, 3};
 
@@ -561,7 +561,7 @@ TEST(SparseVectorsMapVectors, throws_on_unsupported_element_size) {
 }
 
 TEST(SparseVectorsMapVectors, throws_on_null_arrays) {
-    const std::vector<nsparse::idx_t> indptr = {0, 1};
+    const std::vector<nsparse::offset_t> indptr = {0, 1};
     const std::vector<nsparse::term_t> indices = {0};
     const std::vector<uint8_t> values = {7};
     const nsparse::SparseVectorsConfig config = {.element_size = nsparse::U8,
@@ -585,7 +585,7 @@ TEST(SparseVectorsMapVectors, throws_on_null_arrays) {
 }
 
 TEST(SparseVectorsMapVectors, throws_on_size_mismatch) {
-    const std::vector<nsparse::idx_t> indptr = {0, 2};
+    const std::vector<nsparse::offset_t> indptr = {0, 2};
     const std::vector<nsparse::term_t> indices = {0, 1};
     const std::vector<uint8_t> values = {1, 2};  // 2 floats need 8 bytes
 
@@ -597,7 +597,7 @@ TEST(SparseVectorsMapVectors, throws_on_size_mismatch) {
 }
 
 TEST(SparseVectorsMapVectors, throws_on_misaligned_values) {
-    const std::vector<nsparse::idx_t> indptr = {0, 2};
+    const std::vector<nsparse::offset_t> indptr = {0, 2};
     const std::vector<nsparse::term_t> indices = {0, 1};
     auto storage = misaligned_storage(2 * sizeof(float));
     const uint8_t* values = storage.data() + 1;
@@ -611,7 +611,7 @@ TEST(SparseVectorsMapVectors, throws_on_misaligned_values) {
 }
 
 TEST(SparseVectorsMapVectors, throws_when_indptr_does_not_start_at_zero) {
-    const std::vector<nsparse::idx_t> indptr = {1, 2};
+    const std::vector<nsparse::offset_t> indptr = {1, 2};
     const std::vector<nsparse::term_t> indices = {0, 1};
     const std::vector<uint8_t> values = {7, 8};
 
@@ -624,7 +624,7 @@ TEST(SparseVectorsMapVectors, throws_when_indptr_does_not_start_at_zero) {
 
 TEST(SparseVectorsMapVectors, throws_on_non_monotonic_indptr) {
     // Row 1 ends before it starts, so its length would underflow.
-    const std::vector<nsparse::idx_t> indptr = {0, 2, 1, 2};
+    const std::vector<nsparse::offset_t> indptr = {0, 2, 1, 2};
     const std::vector<nsparse::term_t> indices = {0, 1};
     const std::vector<uint8_t> values = {7, 8};
 
@@ -636,7 +636,7 @@ TEST(SparseVectorsMapVectors, throws_on_non_monotonic_indptr) {
 }
 
 TEST(SparseVectorsMapVectors, throws_when_indptr_does_not_end_at_the_count) {
-    const std::vector<nsparse::idx_t> indptr = {0, 1};
+    const std::vector<nsparse::offset_t> indptr = {0, 1};
     const std::vector<nsparse::term_t> indices = {0, 1};
     const std::vector<uint8_t> values = {7, 8};
 
@@ -657,7 +657,7 @@ namespace {
 constexpr size_t kSerializedHeaderBytes = 3 * sizeof(size_t);
 
 nsparse::SparseVectors owned_vectors(size_t dimension, size_t element_size,
-                                     const std::vector<nsparse::idx_t>& indptr,
+                                     const std::vector<nsparse::offset_t>& indptr,
                                      const std::vector<nsparse::term_t>& indices,
                                      const std::vector<uint8_t>& values) {
     nsparse::SparseVectors vectors(
@@ -683,7 +683,7 @@ TEST(SparseVectorsLayout, pads_values_to_the_element_width) {
     const size_t bytes = serialized(vectors).size();
 
     const size_t unpadded = kSerializedHeaderBytes +
-                            2 * sizeof(nsparse::idx_t) +
+                            2 * sizeof(nsparse::offset_t) +
                             3 * sizeof(nsparse::term_t) + 3 * sizeof(float);
     ASSERT_EQ(bytes, unpadded + 2);
     ASSERT_EQ(bytes % alignof(float), 0);
@@ -694,7 +694,7 @@ TEST(SparseVectorsLayout, pads_nothing_when_already_aligned) {
                                  std::vector<uint8_t>(2 * sizeof(float), 0));
 
     const size_t expected = kSerializedHeaderBytes +
-                            2 * sizeof(nsparse::idx_t) +
+                            2 * sizeof(nsparse::offset_t) +
                             2 * sizeof(nsparse::term_t) + 2 * sizeof(float);
     ASSERT_EQ(serialized(vectors).size(), expected);
 }
@@ -705,7 +705,7 @@ TEST(SparseVectorsLayout, pads_nothing_for_byte_wide_values) {
         owned_vectors(4, nsparse::U8, {0, 3}, {0, 1, 3}, {10, 20, 30});
 
     const size_t expected = kSerializedHeaderBytes +
-                            2 * sizeof(nsparse::idx_t) +
+                            2 * sizeof(nsparse::offset_t) +
                             3 * sizeof(nsparse::term_t) + 3;
     ASSERT_EQ(serialized(vectors).size(), expected);
 }

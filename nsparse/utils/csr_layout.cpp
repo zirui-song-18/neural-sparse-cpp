@@ -110,9 +110,17 @@ void convert(const std::string& interchange_path,
         throw std::invalid_argument("Inconsistent CSR indptr in: " +
                                     interchange_path);
     }
-    const auto indptr = narrow<idx_t>(wide_indptr, "indptr", interchange_path);
-    write_or_throw(out, indptr.data(), indptr.size() * sizeof(idx_t),
-                   native_path);
+    // The interchange indptr is already int64 (== offset_t), so it is written
+    // straight through rather than copied. A negative entry is still rejected
+    // (map_vectors re-validates monotonicity when the native file is loaded).
+    for (const int64_t off : wide_indptr) {
+        if (off < 0) {
+            throw std::invalid_argument(
+                "CSR indptr has a negative offset in: " + interchange_path);
+        }
+    }
+    write_or_throw(out, wide_indptr.data(),
+                   wide_indptr.size() * sizeof(offset_t), native_path);
 
     // The large array; stream it.
     for (size_t done = 0; done < nnz_size;) {
@@ -132,8 +140,9 @@ void convert(const std::string& interchange_path,
         done += count;
     }
 
-    const size_t values_pos =
-        kHeaderBytes + indptr_size * sizeof(idx_t) + nnz_size * sizeof(term_t);
+    const size_t values_pos = kHeaderBytes +
+                              indptr_size * sizeof(offset_t) +
+                              nnz_size * sizeof(term_t);
     const std::array<uint8_t, alignof(float)> pad{};
     if (const size_t pad_bytes = padding(values_pos); pad_bytes > 0) {
         write_or_throw(out, pad.data(), pad_bytes, native_path);

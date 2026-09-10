@@ -130,7 +130,7 @@ private:
     // INT32_MAX so off[] stays idx_t-convertible. Shared by section_length()
     // (sizing) and write_body() (emitting) so their per-block math can't drift.
     static BlockCounts count_block(std::span<const idx_t> docs,
-                                   const idx_t* indptr, size_t num_vectors);
+                                   const offset_t* indptr, size_t num_vectors);
     // Byte length of the section body, from a payload-free sizing pass over
     // lists + indptr. Lets serialize() write the length prefix without first
     // rendering the body into a buffer.

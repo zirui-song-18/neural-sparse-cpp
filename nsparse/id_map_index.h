@@ -88,10 +88,10 @@ public:
     explicit IDMapIndex(Index*);
     std::array<char, 4> id() const override { return name; }
 
-    void add(idx_t n, const idx_t* indptr, const term_t* indices,
+    void add(idx_t n, const offset_t* indptr, const term_t* indices,
              const float* values) override;
     void build() override;
-    void search(idx_t n, const idx_t* indptr, const term_t* indices,
+    void search(idx_t n, const offset_t* indptr, const term_t* indices,
                 const float* values, int k, float* distances, idx_t* labels,
                 SearchParameters* search_parameters = nullptr) override;
     const SparseVectors* get_vectors() const override;
@@ -99,7 +99,7 @@ public:
     // exposing its vectors.
     size_t num_vectors() const override;
 
-    void add_with_ids(idx_t n, const idx_t* indptr, const term_t* indices,
+    void add_with_ids(idx_t n, const offset_t* indptr, const term_t* indices,
                       const float* values, const idx_t* ids) override;
 
     void read_csr_and_ids(const char* csr_path, const char* id_path,
